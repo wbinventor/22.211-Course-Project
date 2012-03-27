@@ -21,8 +21,7 @@ Region1D::Region1D() {
 	_left_surface = NULL;
 	_right_surface = NULL;
 
-	/* Default number density and volume */
-	_tot_num_density = 0.0;
+	/* Default volume */
 	_volume = 0.0;
 
 	/* Default two region pin cell parameters */
@@ -45,17 +44,7 @@ Region1D::Region1D() {
 /**
  * Region1D destructor
  */
-Region1D::~Region1D() {
-
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	Material* curr;
-
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter) {
-		curr = iter->second.second;
-		delete curr;
-	}
-
-}
+Region1D::~Region1D() { }
 
 
 /**
@@ -77,16 +66,6 @@ Surface* Region1D::getRightSurface() const {
 
 
 /**
- * Returns the total number density for all materials within
- * this region
- * @return the total number density (at/cm^3)
- */
-float Region1D::getTotalNumberDensity() {
-	return _tot_num_density;
-}
-
-
-/**
  * Returns the volume of this Region1D (cm^3)
  * @return the Region1D's volume
  */
@@ -94,319 +73,13 @@ float Region1D::getVolume() {
 	return _volume;
 }
 
-/**
- * Returns the total macroscopic cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total macroscopic cross-section (cm^-1)
- */
-float Region1D::getTotalMacroXS(float energy) {
-
-	float sigma_t = 0;
-
-	/* Increment sigma_t for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_t += iter->second.second->getTotalXS(energy)
-											* iter->second.first * 1E-24;
-
-	return sigma_t;
-}
-
 
 /**
- * Returns the total microscopic cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total microscopic cross-section (barns)
+ * Returns a pointer to the Material filling this Region1D
+ * @return a pointer to a Material
  */
-float Region1D::getTotalMicroXS(float energy) {
-
-	float sigma_t = 0;
-
-	/* Increment sigma_t for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_t += iter->second.second->getTotalXS(energy);
-
-	return sigma_t;
-}
-
-
-/**
- * Returns the total macroscopic capture cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total macroscopic capture cross-section (cm^-1)
- */
-float Region1D::getCaptureMacroXS(float energy) {
-
-	float sigma_c = 0;
-
-	/* Increment sigma_a for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_c += iter->second.second->getCaptureXS(energy) *
-											iter->second.first * 1E-24;
-
-	return sigma_c;
-}
-
-
-/**
- * Returns the total microscopic capture cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total microscopic capture cross-section (barns)
- */
-float Region1D::getCaptureMicroXS(float energy) {
-
-	float sigma_a = 0;
-
-	/* Increment sigma_a for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_a += iter->second.second->getCaptureXS(energy);
-
-	return sigma_a;
-}
-
-
-/**
- * Returns the total macroscopic scattering cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total macroscopic scattering cross-section (cm^-1)
- */
-float Region1D::getScatterMacroXS(float energy){
-
-	float sigma_s = 0;
-
-	/* Increment sigma_s for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter) {
-		sigma_s += iter->second.second->getScatterXS(energy)
-												* iter->second.first * 1E-24;
-		sigma_s += iter->second.second->getInelasticXS(energy)
-												* iter->second.first * 1E-24;
-		sigma_s += iter->second.second->getElasticXS(energy)
-												* iter->second.first * 1E-24;
-	}
-
-	return sigma_s;
-}
-
-
-/**
- * Returns the total microscopic scattering cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total microscopic scattering cross-section (barns)
- */
-float Region1D::getScatterMicroXS(float energy){
-
-	float sigma_s = 0;
-
-	/* Increment sigma_s for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter) {
-		sigma_s += iter->second.second->getScatterXS(energy);
-		sigma_s += iter->second.second->getInelasticXS(energy);
-		sigma_s += iter->second.second->getElasticXS(energy);
-	}
-
-	return sigma_s;
-}
-
-
-/**
- * Returns the total macroscopic elastic scattering cross-section within
- * this Region1D at some energy
- * @param energy energy of interest (eV)
- * @return the total elastic macroscopic scattering cross-section (cm^-1)
- */
-float Region1D::getElasticMacroXS(float energy) {
-
-	float sigma_s = 0;
-
-	/* Increment sigma_s for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_s += iter->second.second->getElasticXS(energy)
-												* iter->second.first * 1E-24;
-
-	return sigma_s;
-}
-
-
-/**
- * Returns the total macroscopic elastic scattering cross-section within
- * this Region1D at some energy
- * @param energy energy of interest (eV)
- * @return the total elastic microscopic scattering cross-section (barns)
- */
-float Region1D::getElasticMicroXS(float energy) {
-
-	float sigma_s = 0;
-
-	/* Increment sigma_s for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_s += iter->second.second->getElasticXS(energy);
-
-	return sigma_s;
-}
-
-
-/**
- * Returns the total macroscopic inelastic scattering cross-section within
- * this Region1D at some energy
- * @param energy energy of interest (eV)
- * @return the total inelastic macroscopic scattering cross-section (cm^-1)
- */
-float Region1D::getInelasticMacroXS(float energy) {
-
-	float sigma_s = 0;
-
-	/* Increment sigma_s for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_s += iter->second.second->getInelasticXS(energy)
-												* iter->second.first * 1E-24;
-
-	return sigma_s;
-}
-
-
-/**
- * Returns the total macroscopic inelastic scattering cross-section within
- * this Region1D at some energy
- * @param energy energy of interest (eV)
- * @return the total inelastic microscopic scattering cross-section (barns)
- */
-float Region1D::getInelasticMicroXS(float energy) {
-
-	float sigma_s = 0;
-
-	/* Increment sigma_s for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_s += iter->second.second->getInelasticXS(energy);
-
-	return sigma_s;
-}
-
-
-/**
- * Returns the total macroscopic fission cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total macroscopic fission cross-section (cm^-1)
- */
-float Region1D::getFissionMacroXS(float energy) {
-
-	float sigma_f = 0;
-
-	/* Increment sigma_f for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_f += iter->second.second->getFissionXS(energy) *
-											iter->second.first * 1E-24;
-
-	return sigma_f;
-}
-
-
-/**
- * Returns the total microscopic fission cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total microscopic fission cross-section (barns)
- */
-float Region1D::getFissionMicroXS(float energy) {
-
-	float sigma_f = 0;
-
-	/* Increment sigma_f for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_f += iter->second.second->getFissionXS(energy);
-
-	return sigma_f;
-}
-
-
-/**
- * Returns the total macroscopic absorption cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total macroscopic absorption cross-section (cm^-1)
- */
-float Region1D::getAbsorbMacroXS(float energy) {
-	float sigma_a = 0;
-
-	/* Increment sigma_a for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_a += iter->second.second->getAbsorbXS(energy) *
-											iter->second.first * 1E-24;
-
-	return sigma_a;
-}
-
-
-/**
- * Returns the total microscopic absorption cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total microscopic absorption cross-section (barns)
- */
-float Region1D::getAbsorbMicroXS(float energy) {
-	float sigma_a = 0;
-
-	/* Increment sigma_a for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_a += iter->second.second->getAbsorbXS(energy);
-
-	return sigma_a;
-}
-
-
-/**
- * Returns the total microscopic transport cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total microscopic transport cross-section (barns)
- */
-float Region1D::getTransportMicroXS(float energy) {
-	float sigma_tr = 0;
-
-	/* Increment sigma_a for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_tr += iter->second.second->getTransportXS(energy);
-
-	return sigma_tr;
-}
-
-
-/**
- * Returns the total macroscopic transport cross-section within this Region1D
- * at some energy
- * @param energy energy of interest (eV)
- * @return the total macroscopic transport cross-section (cm^-1)
- */
-float Region1D::getTransportMacroXS(float energy) {
-	float sigma_tr = 0;
-
-	/* Increment sigma_a for each material */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	for (iter = _materials.begin(); iter != _materials.end(); ++iter)
-		sigma_tr += iter->second.second->getTransportXS(energy) *
-										iter->second.first * 1E-24;
-
-	return sigma_tr;
+Material* Region1D::getMaterial() {
+	return _material;
 }
 
 
@@ -463,34 +136,20 @@ Region1D* Region1D::getOtherPinCellRegion() {
 
 
 /**
- * Adds a new material to this region
- * @param material a pointer to a material class object
- * @param num_density the number density (at/cm^3) for this material
- */
-void Region1D::addMaterial(Material* material, float num_density) {
-
-	/* Creates a pair between the number density and material pointer */
-	std::pair<float, Material*> new_pair = std::pair<float, Material*>
-													(num_density, material);
-
-	std::pair<char*, std::pair<float, Material*> > new_material =
-							std::pair<char*, std::pair<float, Material*> >
-									(material->getIsotopeType(), new_pair);
-
-	/* Inserts the material and increments the total number density */
-	_materials.insert(new_material);
-	_tot_num_density += num_density;
-
-	return;
-}
-
-
-/**
  * Sets this Region1D's name as specified by a user
  * @param region_name the name of this Region1D
  */
 void Region1D::setRegionName(char* region_name) {
 	_region_name = region_name;
+}
+
+
+/**
+ * Set the Material filling this Region1D
+ * @param material a pointer to a Material
+ */
+void Region1D::setMaterial(Material* material) {
+	_material = material;
 }
 
 
@@ -620,44 +279,6 @@ void Region1D::useForcedCollision(float weight_low, float weight_avg) {
 
 
 /**
- * Samples a material for a collision with a probability based on the
- * ratios of each material's total cross-section to the total cross-section
- * of all material's in this Region1D
- * @return a pointer to the chosen material
- */
-Material* Region1D::sampleMaterial(float energy) {
-
-	float sigma_t = getTotalMacroXS(energy);
-	float sigma_t_ratio = 0.0;
-	float new_sigma_t_ratio = 0.0;
-	float test = float(rand()) / RAND_MAX;
-
-	/* Loop over all materials */
-	std::map<char*, std::pair<float, Material*> >::iterator iter;
-	Material* material = NULL;
-	for (iter =_materials.begin(); iter !=_materials.end(); ++iter){
-
-		new_sigma_t_ratio += (iter->second.second->getTotalXS(energy) *
-										iter->second.first * 1E-24) / sigma_t;
-
-		if (test >= sigma_t_ratio && ((test <= new_sigma_t_ratio) ||
-							fabs(test - new_sigma_t_ratio) < 1E-5)) {
-			material = iter->second.second;
-			break;
-		}
-		sigma_t_ratio = new_sigma_t_ratio;
-	}
-
-	if (material == NULL)
-		log_printf(ERROR, "Unable to find material type in region %s"
-				" moveNeutron method, test = %1.20f, new_num_density_ratio "
-				"= %1.20f", _region_name, test, new_sigma_t_ratio);
-
-	return material;
-}
-
-
-/**
  * This method plays Russian Roulette with a neutron by checking if it
  * has a weight below the low weight and if so, it kills the neutron
  * with a probability equal to the neutron's weight divided by weight
@@ -692,10 +313,10 @@ bool Region1D::playRussianRoulette(neutron* neutron) {
  * a two-region pin cell simulation. It uses Carlvik's two-term rational model
  * and assumes that the escape cross-section (_sigma_e), _beta, _alpha1 and
  * _alpha2 have all been set or else it throws an error
- * @param energy a neutrons' energy (eV)
+ * @param energy_index index into the material's energy grid
  * @return the fuel-to-fuel collision probability at that energy
  */
-float Region1D::computeFuelFuelCollisionProb(float energy) {
+float Region1D::computeFuelFuelCollisionProb(int energy_index) {
 
 	float p_ff;
 
@@ -709,7 +330,7 @@ float Region1D::computeFuelFuelCollisionProb(float energy) {
 					"alpha1, or alpha2 for this region has not yet been set",
 					_region_name);
 
-		float sigma_tot_fuel = getTotalMacroXS(energy);
+		float sigma_tot_fuel = _material->getTotalMacroXS(energy_index);
 
 		p_ff = ((_beta*sigma_tot_fuel) / (_alpha1*_sigma_e + sigma_tot_fuel)) +
 			((1.0 - _beta)*sigma_tot_fuel / (_alpha2*_sigma_e + sigma_tot_fuel));
@@ -723,7 +344,7 @@ float Region1D::computeFuelFuelCollisionProb(float energy) {
 					"probability for region %s since other region has"
 					" not been set", _region_name);
 
-		p_ff = _other_region->computeFuelFuelCollisionProb(energy);
+		p_ff = _other_region->computeFuelFuelCollisionProb(energy_index);
 	}
 
 	return p_ff;
@@ -736,10 +357,10 @@ float Region1D::computeFuelFuelCollisionProb(float energy) {
  * two-term rational model and assumes that the escape cross-section
  * (_sigma_e), _beta, _alpha1 and _alpha2 have all been set or else it
  * throws an error
- * @param energy a neutrons' energy (eV)
+ * @param energy_index index into the material's energy grid
  * @return the moderator-to-fuel collision probability at that energy
  */
-float Region1D::computeModeratorFuelCollisionProb(float energy) {
+float Region1D::computeModeratorFuelCollisionProb(int energy_index) {
 
 	float p_mf;
 
@@ -753,11 +374,11 @@ float Region1D::computeModeratorFuelCollisionProb(float energy) {
 					"or alpha2 for this region has not yet been set",
 					_region_name);
 
-		float p_ff = computeFuelFuelCollisionProb(energy);
+		float p_ff = computeFuelFuelCollisionProb(energy_index);
 		float p_fm = 1.0 - p_ff;
 
-		float tot_sigma_f = getTotalMacroXS(energy);
-		float tot_sigma_mod = _other_region->getTotalMacroXS(energy);
+		float tot_sigma_f = _material->getTotalMacroXS(energy_index);
+		float tot_sigma_mod = _other_region->getMaterial()->getTotalMacroXS(energy_index);
 		float v_mod = _other_region->getVolume();
 
 		p_mf = p_fm*(tot_sigma_f*_volume) / (tot_sigma_mod*v_mod);
@@ -771,7 +392,7 @@ float Region1D::computeModeratorFuelCollisionProb(float energy) {
 					"probability for region %s since other region has"
 					" not been set", _region_name);
 
-		p_mf = _other_region->computeModeratorFuelCollisionProb(energy);
+		p_mf = _other_region->computeModeratorFuelCollisionProb(energy_index);
 	}
 
 	return p_mf;
@@ -882,10 +503,14 @@ void Region1D::initializeTransferredNeutrons() {
  */
 void Region1D::twoRegionNeutronTransferral() {
 
-//	log_printf(NORMAL, "Transferring neutrons...");
-
 	neutron* curr;
 	std::vector<neutron*>::iterator iter1;
+	int energy_index;
+
+	if (!_material->isRescaled())
+		log_printf(ERROR, "Region %s is unable to transfer neutrons since "
+				"it's Material %s has not been rescaled",
+				_region_name, _material->getMaterialName());
 
 	if (_region_type != TWO_REGION_PIN_CELL)
 		log_printf(ERROR, "Cannot initialize transferred neutrons in region %s"
@@ -897,8 +522,11 @@ void Region1D::twoRegionNeutronTransferral() {
 
 		curr = (*iter1);
 
-		float p_ff = computeFuelFuelCollisionProb(curr->_energy);
-		float p_mf = computeModeratorFuelCollisionProb(curr->_energy);
+		/* find index into the material's energy grid for this neutron */
+		energy_index = _material->getEnergyGridIndex(curr->_energy);
+
+		float p_ff = computeFuelFuelCollisionProb(energy_index);
+		float p_mf = computeModeratorFuelCollisionProb(energy_index);
 		float test = float(rand()) / RAND_MAX;
 
 		/* If this Region1D is the fuel */
@@ -933,7 +561,7 @@ void Region1D::twoRegionNeutronTransferral() {
 /**
  * This method contains all of the neutron physics for the simulation
  * It moves neutrons by sampling their path traveled and either collides
- * them with a material in the region, or places them on one of the bounding
+ * them with a isotope in the region, or places them on one of the bounding
  * surfaces
  */
 void Region1D::moveNeutrons() {
@@ -941,12 +569,18 @@ void Region1D::moveNeutrons() {
 	log_printf(DEBUG, "Inside moveNeutrons method for region %s with "
 			"%d neutrons", _region_name, getNumNeutrons());
 
+	if (!_material->isRescaled())
+		log_printf(ERROR, "Region %s is unable to move neutrons since it's "
+				"Material %s has not been rescaled",
+				_region_name, _material->getMaterialName());
+
+	int energy_index;
 	float sigma_t;
 	float sigma_a;
 	float path_length;
 	float new_x;
 	neutron* curr;
-	Material* material;
+	Isotope* isotope;
 	Binner* curr_bin;
 	collisionType collision_type;
 	std::vector<Binner*>::iterator iter3;
@@ -962,8 +596,9 @@ void Region1D::moveNeutrons() {
 		log_printf(DEBUG, "Neutron x = %f, mu = %f, energy = %f", curr->_x,
 													curr->_mu, curr->_energy);
 
-		/* Compute total sigma_t from all materials */
-		sigma_t = getTotalMacroXS(curr->_energy);
+		/* Compute total sigma_t from all isotopes */
+		energy_index = _material->getEnergyGridIndex(curr->_energy);
+		sigma_t = _material->getTotalMacroXS(energy_index);
 
 		/* Compute path length and the new x position of this neutron */
 		path_length = -log(float(rand()) / RAND_MAX) / sigma_t;
@@ -975,14 +610,14 @@ void Region1D::moveNeutrons() {
 		/* The neutron collided within this region */
 		if (contains(new_x)) {
 
-			/* Figure out which material the neutron collided in */
-			material = sampleMaterial(curr->_energy);
+			/* Figure out which isotope the neutron collided in */
+			isotope = _material->sampleIsotope(curr->_energy);
 
-			log_printf(DEBUG, "Neutron collided in material: %s",
-											material->getIsotopeType());
+			log_printf(DEBUG, "Neutron collided in isotope: %s",
+											isotope->getIsotopeType());
 
 			/* Figure out the collision type */
-			collision_type = material->getCollisionType(curr->_energy);
+			collision_type = isotope->getCollisionType(curr->_energy);
 
 			/* Update the neutron position */
 			curr->_x = new_x;
@@ -1012,52 +647,52 @@ void Region1D::moveNeutrons() {
 					/* Spatial capture rate tally */
 					else if (curr_bin->getTallyType()==CAPTURE_RATE_SPATIAL)
 						curr_bin->weightedTally(curr->_x, curr->_weight *
-									getCaptureMacroXS(curr->_energy) / sigma_t);
+						_material->getCaptureMacroXS(energy_index) / sigma_t);
 
 					/* Energy absorption rate tally */
 					else if (curr_bin->getTallyType()==CAPTURE_RATE_ENERGY)
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
-									getCaptureMacroXS(curr->_energy) / sigma_t);
+						_material->getCaptureMacroXS(energy_index) / sigma_t);
 
 					/* Spatial absorption rate tally */
 					else if (curr_bin->getTallyType()==ABSORPTION_RATE_SPATIAL)
 						curr_bin->weightedTally(curr->_x, curr->_weight *
-									getAbsorbMacroXS(curr->_energy) / sigma_t);
+						_material->getAbsorbMacroXS(energy_index) / sigma_t);
 
 					/* Energy absorption rate tally */
 					else if (curr_bin->getTallyType()==ABSORPTION_RATE_ENERGY)
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
-									getAbsorbMacroXS(curr->_energy) / sigma_t);
+						_material->getAbsorbMacroXS(energy_index) / sigma_t);
 
 					/* Spatial elastic rate tally */
 					else if (curr_bin->getTallyType()==ELASTIC_RATE_SPATIAL)
 						curr_bin->weightedTally(curr->_x, curr->_weight *
-									getElasticMacroXS(curr->_energy) / sigma_t);
+						_material->getElasticMacroXS(energy_index) / sigma_t);
 
 					/* Energy elastic rate tally */
 					else if (curr_bin->getTallyType()==ELASTIC_RATE_ENERGY)
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
-									getElasticMacroXS(curr->_energy) / sigma_t);
+						_material->getElasticMacroXS(energy_index) / sigma_t);
 
 					/* Spatial fission rate tally */
 					else if (curr_bin->getTallyType()==FISSION_RATE_SPATIAL)
 						curr_bin->weightedTally(curr->_x, curr->_weight *
-									getFissionMacroXS(curr->_energy) / sigma_t);
+						_material->getFissionMacroXS(energy_index) / sigma_t);
 
 					/* Energy fission rate tally */
 					else if (curr_bin->getTallyType()==FISSION_RATE_ENERGY)
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
-									getFissionMacroXS(curr->_energy) / sigma_t);
+						_material->getFissionMacroXS(energy_index) / sigma_t);
 
 					/* Spatial transport rate tally */
 					else if (curr_bin->getTallyType()==TRANSPORT_RATE_SPATIAL)
 						curr_bin->weightedTally(curr->_x, curr->_weight *
-								getTransportMacroXS(curr->_energy) / sigma_t);
+						_material->getTransportMacroXS(energy_index) / sigma_t);
 
 					/* Energy transport rate tally */
 					else if (curr_bin->getTallyType()==TRANSPORT_RATE_ENERGY)
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
-								getTransportMacroXS(curr->_energy) / sigma_t);
+						_material->getTransportMacroXS(energy_index) / sigma_t);
 
 					/* Spatial collision rate tally */
 					else if (curr_bin->getTallyType()==COLLISION_RATE_SPATIAL)
@@ -1070,13 +705,13 @@ void Region1D::moveNeutrons() {
 					/* Spatial diffusion rate tally */
 					else if (curr_bin->getTallyType()==DIFFUSION_RATE_SPATIAL)
 						curr_bin->weightedTally(curr->_x, curr->_weight *
-							1.0 / (3.0 *	getTransportMacroXS(curr->_energy)
+							1.0 / (3.0 *_material->getTransportMacroXS(curr->_energy)
 																* sigma_t));
 
 					/* Energy diffusion rate tally */
 					else if (curr_bin->getTallyType()==DIFFUSION_RATE_ENERGY)
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
-							1.0 / (3.0 *	getTransportMacroXS(curr->_energy)
+							1.0 / (3.0 *_material->getTransportMacroXS(energy_index)
 																* sigma_t));
 				}
 
@@ -1095,9 +730,10 @@ void Region1D::moveNeutrons() {
 
 					/* Spatial capture rate tally */
 					else if (curr_bin->getTallyType() == CAPTURE_RATE_SPATIAL) {
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_c =
-									_materials.at(isotopes).second->getCaptureXS(
-						curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getCaptureXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_x, curr->_weight *
 													isotope_sigma_c / sigma_t);
@@ -1106,9 +742,10 @@ void Region1D::moveNeutrons() {
 					/* Energy capture rate tally */
 					else if (curr_bin->getTallyType() == CAPTURE_RATE_ENERGY) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_c =
-							_materials.at(isotopes).second->getCaptureXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getCaptureXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
 													isotope_sigma_c / sigma_t);
@@ -1117,9 +754,10 @@ void Region1D::moveNeutrons() {
 					/* Spatial absorption rate tally */
 					else if (curr_bin->getTallyType() == ABSORPTION_RATE_SPATIAL) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_a =
-									_materials.at(isotopes).second->getAbsorbXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getAbsorbXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_x, curr->_weight *
 													isotope_sigma_a / sigma_t);
@@ -1128,9 +766,10 @@ void Region1D::moveNeutrons() {
 					/* Energy absorption rate tally */
 					else if (curr_bin->getTallyType() == ABSORPTION_RATE_ENERGY) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_a =
-							_materials.at(isotopes).second->getAbsorbXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getAbsorbXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
 													isotope_sigma_a / sigma_t);
@@ -1139,9 +778,10 @@ void Region1D::moveNeutrons() {
 					/* Spatial elastic rate tally */
 					else if (curr_bin->getTallyType() == ELASTIC_RATE_SPATIAL) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_e =
-									_materials.at(isotopes).second->getElasticXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getElasticXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_x, curr->_weight *
 													isotope_sigma_e / sigma_t);
@@ -1150,10 +790,10 @@ void Region1D::moveNeutrons() {
 					/* Energy elastic rate tally */
 					else if (curr_bin->getTallyType() == ELASTIC_RATE_ENERGY) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_e =
-							_materials.at(isotopes).second->getElasticXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
-
+						isotope->getElasticXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
 													isotope_sigma_e / sigma_t);
@@ -1162,9 +802,10 @@ void Region1D::moveNeutrons() {
 					/* Spatial fission rate tally */
 					else if (curr_bin->getTallyType() == FISSION_RATE_SPATIAL) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_f =
-									_materials.at(isotopes).second->getFissionXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getFissionXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_x, curr->_weight *
 													isotope_sigma_f / sigma_t);
@@ -1173,9 +814,10 @@ void Region1D::moveNeutrons() {
 					/* Energy fission rate tally */
 					else if (curr_bin->getTallyType() == FISSION_RATE_ENERGY) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_f =
-							_materials.at(isotopes).second->getFissionXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getFissionXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
 													isotope_sigma_f / sigma_t);
@@ -1184,9 +826,10 @@ void Region1D::moveNeutrons() {
 					/* Spatial fission rate tally */
 					else if (curr_bin->getTallyType() == TRANSPORT_RATE_SPATIAL) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_tr =
-									_materials.at(isotopes).second->getTransportXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getTransportXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_x, curr->_weight *
 													isotope_sigma_tr / sigma_t);
@@ -1195,9 +838,10 @@ void Region1D::moveNeutrons() {
 					/* Energy fission rate tally */
 					else if (curr_bin->getTallyType() == TRANSPORT_RATE_ENERGY) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_tr =
-							_materials.at(isotopes).second->getTransportXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getTransportXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
 													isotope_sigma_tr / sigma_t);
@@ -1214,9 +858,10 @@ void Region1D::moveNeutrons() {
 					/* Spatial diffusion rate tally */
 					else if (curr_bin->getTallyType() == DIFFUSION_RATE_SPATIAL) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_tr =
-									_materials.at(isotopes).second->getTransportXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getTransportXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_x, curr->_weight *
 										1.0 / (3.0 * isotope_sigma_tr * sigma_t));
@@ -1225,9 +870,10 @@ void Region1D::moveNeutrons() {
 					/* Energy diffusion rate tally */
 					else if (curr_bin->getTallyType() == DIFFUSION_RATE_ENERGY) {
 
+						Isotope* isotope = _material->getIsotope(isotopes);
+						float num_density = _material->getIsotopeNumDensity(isotopes);
 						float isotope_sigma_tr =
-							_materials.at(isotopes).second->getTransportXS(
-							curr->_energy) * _materials.at(isotopes).first * 1E-24;
+						isotope->getTransportXS(energy_index) * num_density * 1E-24;
 
 						curr_bin->weightedTally(curr->_energy, curr->_weight *
 										1.0 / (3.0 * isotope_sigma_tr * sigma_t));
@@ -1248,17 +894,17 @@ void Region1D::moveNeutrons() {
 				 * a scattering collision */
 				if (_use_implicit_capture) {
 
-					/* Sample a material with a scattering cross-section */
-					while (material->getScatterXS(curr->_energy) == 0)
-						material = sampleMaterial(curr->_energy);
+					/* Sample a isotope with a scattering cross-section */
+					while (isotope->getScatterXS(curr->_energy) == 0)
+						isotope = _material->sampleIsotope(curr->_energy);
 
 					while (collision_type == CAPTURE)
 						collision_type =
-									material->getCollisionType(curr->_energy);
+									isotope->getCollisionType(curr->_energy);
 				}
 
 				/* Get the total absorption cross-section for this Region1D */
-				sigma_a = getAbsorbMacroXS(curr->_energy);
+				sigma_a = _material->getAbsorbMacroXS(energy_index);
 
 				/* Reduce weight by sigma_a / sigma_t */
 				curr->_weight *= (1.0 - (sigma_a / sigma_t));
@@ -1333,18 +979,18 @@ void Region1D::moveNeutrons() {
 				log_printf(DEBUG, "Normal scatter type collision");
 
 				/* Isotropic in lab */
-				if (material->getScatterAngleType() == ISOTROPIC_LAB) {
-					float A = float(material->getA());
+				if (isotope->getScatterAngleType() == ISOTROPIC_LAB) {
+					float A = float(isotope->getA());
 					float energy = curr->_energy * (1.0 -
-						(1.0 - material->getAlpha())*(float(rand())/RAND_MAX));
+						(1.0 - isotope->getAlpha())*(float(rand())/RAND_MAX));
 					float mu_cm = ((2 * energy / curr->_energy) -
-									material->getAlpha() - 1.0) / (1.0 -
-														material->getAlpha());
+									isotope->getAlpha() - 1.0) / (1.0 -
+														isotope->getAlpha());
 					curr->_mu = (1.0 + A*mu_cm) / sqrt(A*A + 1.0 + 2*mu_cm*A);
 
-					if (curr->_energy < 4 && material->usesThermalScattering())
+					if (curr->_energy < 4 && isotope->usesThermalScattering())
 						curr->_energy =
-						material->getThermalScatteringEnergy(curr->_energy);
+						isotope->getThermalScatteringEnergy(curr->_energy);
 					else
 						curr->_energy = energy;
 				}
@@ -1352,16 +998,16 @@ void Region1D::moveNeutrons() {
 				/* Isotropic in CM */
 				else {
 					float mu_cm = (float(rand()) / RAND_MAX) * 2.0 - 1.0;
-					int A = material->getA();
+					int A = isotope->getA();
 					float mu_l = (1.0 + A*mu_cm) / (sqrt(A*A + 2*A*mu_cm+1.0));
 					float phi = (float(rand()) / RAND_MAX) * 2.0 * M_PI;
 					curr->_mu = curr->_mu * mu_l +
 							sqrt(1.0 - curr->_mu * curr->_mu) *
 							sqrt(1.0 - mu_l * mu_l) * sin(phi);
 
-					if (curr->_energy < 4 && material->usesThermalScattering())
+					if (curr->_energy < 4 && isotope->usesThermalScattering())
 						curr->_energy =
-						material->getThermalScatteringEnergy(curr->_energy);
+						isotope->getThermalScatteringEnergy(curr->_energy);
 					else
 						curr->_energy *= (A*A + 2*A*mu_cm + 1.0) /
 															((A+1.0)*(A+1.0));
@@ -1377,13 +1023,13 @@ void Region1D::moveNeutrons() {
 				log_printf(DEBUG, "Inelastic scatter type collision");
 
 				/* Isotropic in lab */
-				if (material->getInelasticAngleType() == ISOTROPIC_LAB)
+				if (isotope->getInelasticAngleType() == ISOTROPIC_LAB)
 					curr->_mu = (float(rand()) / RAND_MAX) * 2.0 - 1.0;
 
 				/* Isotropic in CM */
 				else {
 					float mu_cm = (float(rand()) / RAND_MAX) * 2.0 - 1.0;
-					int A = material->getA();
+					int A = isotope->getA();
 					float mu_l = (1.0 + A*mu_cm) / (sqrt(A*A + 2*A*mu_cm+1.0));
 					float phi = (float(rand()) / RAND_MAX) * 2.0 * M_PI;
 					curr->_mu = curr->_mu * mu_l +
@@ -1393,7 +1039,7 @@ void Region1D::moveNeutrons() {
 
 				/* Update the neutron energy */
 				curr->_energy =
-						material->getInelasticScatterEnergy(curr->_energy);
+						isotope->getInelasticScatterEnergy(curr->_energy);
 
 				log_printf(DEBUG, "Updated mu= %f, energy = %f",
 									curr->_mu, curr->_energy);
@@ -1405,18 +1051,18 @@ void Region1D::moveNeutrons() {
 				log_printf(DEBUG, "Elastic scatter type collision");
 
 				/* Isotropic in lab */
-				if (material->getElasticAngleType() == ISOTROPIC_LAB) {
-					float A = float(material->getA());
+				if (isotope->getElasticAngleType() == ISOTROPIC_LAB) {
+					float A = float(isotope->getA());
 					float energy = curr->_energy * (1.0 -
-						(1.0 - material->getAlpha())*(float(rand())/RAND_MAX));
+						(1.0 - isotope->getAlpha())*(float(rand())/RAND_MAX));
 					float mu_cm = ((2 * energy / curr->_energy) -
-									material->getAlpha() - 1.0) / (1.0 -
-														material->getAlpha());
+									isotope->getAlpha() - 1.0) / (1.0 -
+														isotope->getAlpha());
 					curr->_mu = (1.0 + A*mu_cm) / sqrt(A*A + 1.0 + 2*mu_cm*A);
 
-					if (curr->_energy < 4 && material->usesThermalScattering())
+					if (curr->_energy < 4 && isotope->usesThermalScattering())
 						curr->_energy =
-						material->getThermalScatteringEnergy(curr->_energy);
+						isotope->getThermalScatteringEnergy(curr->_energy);
 					else
 						curr->_energy = energy;
 				}
@@ -1424,16 +1070,16 @@ void Region1D::moveNeutrons() {
 				/* Isotropic in CM */
 				else {
 					float mu_cm = (float(rand()) / RAND_MAX) * 2.0 - 1.0;
-					int A = material->getA();
+					int A = isotope->getA();
 					float mu_l = (1.0 + A*mu_cm)/(sqrt(A*A + 2*A*mu_cm + 1.0));
 					float phi = (float(rand()) / RAND_MAX) * 2.0 * M_PI;
 					curr->_mu = curr->_mu * mu_l +
 							sqrt(1.0 - curr->_mu * curr->_mu) *
 							sqrt(1.0 - mu_l * mu_l) * sin(phi);
 
-					if (curr->_energy < 4 && material->usesThermalScattering())
+					if (curr->_energy < 4 && isotope->usesThermalScattering())
 						curr->_energy =
-						material->getThermalScatteringEnergy(curr->_energy);
+						isotope->getThermalScatteringEnergy(curr->_energy);
 					else
 						curr->_energy *= (A*A + 2*A*mu_cm + 1.0) /
 															((A+1.0)*(A+1.0));
@@ -1486,134 +1132,4 @@ void Region1D::moveNeutrons() {
  */
 int Region1D::getNumNeutrons() {
 	return _neutrons.size();
-}
-
-
-/**
- * This function plots the total macroscopic cross-sections for
- * the materials specified with a variable argument list of character
- * arrays. The final argument must be NULL so that this function knows
- * when to stop loop over materials.
- * @param start_energy the starting energy for the plot (eV)
- * @param end_energy the ending energy for the plot (eV)
- * @param num_energies the number of energies to plot (eV)
- * @param isotopes a variable length parameter list of character arrays
- * of material types
- */
-void Region1D::plotMacroscopicCrossSections(float start_energy,
-		float end_energy, int num_energies, char* isotopes, ...) {
-
-	/* Allocate memory for energies and xs values */
-	float* energies = logspace(start_energy, end_energy, num_energies);
-	float* xs_values = new float[num_energies];
-
-	/* Initialize variable parameters data structures of different materials */
-	va_list xs_types;
-	va_start(xs_types, isotopes);
-	Material* material;
-	float num_density;
-	char* i;
-
-	/* Create title and filename for plot */
-	std::stringstream title;
-	std::stringstream filename;
-	title << "set title \"" << _region_name;
-	title << " Macroscopic Total Cross-sections\"";
-	filename << _region_name << "_macro_xs";
-
-	/* Initialize the plot */
-	gnuplot_ctrl* handle = gnuplot_init();
-	gnuplot_set_xlabel(handle, (char*)"Energy (eV)");
-	gnuplot_set_ylabel(handle, (char*)"Cross-section (cm^-1)");
-	gnuplot_cmd(handle, (char*)title.str().c_str());
-	gnuplot_cmd(handle, (char*)"set logscale xy");
-	gnuplot_setstyle(handle, (char*)"lines");
-
-	/* Loop through each material */
-	for (i=isotopes; i != NULL; i=va_arg(xs_types, char*)) {
-
-		material = _materials.at(i).second;
-		num_density = _materials.at(i).first;
-
-		/* Load xs_values vector */
-		for (int j=0; j < num_energies; j++)
-			xs_values[j] = material->getTotalXS(energies[j])
-											* num_density * 1E-24;
-
-		/* Plot the cross-section */
-		gnuplot_saveplot(handle, (char*)filename.str().c_str());
-		gnuplot_plot_xy(handle, energies, xs_values, num_energies, i);
-	}
-
-	gnuplot_close(handle);
-	va_end(xs_types);
-
-	delete [] energies;
-	delete [] xs_values;
-
-	return;
-}
-
-
-
-/**
- * This function plots the total microscopic cross-sections for
- * the materials specified with a variable argument list of character
- * arrays. The final argument must be NULL so that this function knows
- * when to stop loop over materials.
- * @param start_energy the starting energy for the plot (eV)
- * @param end_energy the ending energy for the plot (eV)
- * @param num_energies the number of energies to plot (eV)
- * @param isotopes a variable length parameter list of character arrays
- * of material types
- */
-void Region1D::plotMicroscopicCrossSections(float start_energy,
-		float end_energy, int num_energies, char* isotopes, ...) {
-
-	/* Allocate memory for energies and xs values */
-	float* energies = logspace(start_energy, end_energy, num_energies);
-	float* xs_values = new float[num_energies];
-
-	/* Initialize variable parameters data structures of different materials */
-	va_list xs_types;
-	va_start(xs_types, isotopes);
-	Material* material;
-	char* i;
-
-	/* Create title and filename for plot */
-	std::stringstream title;
-	std::stringstream filename;
-	title << "set title \"" << _region_name;
-	title << " Microscopic Total Cross-sections\"";
-	filename << _region_name << "_micro_xs";
-
-	/* Initialize the plot */
-	gnuplot_ctrl* handle = gnuplot_init();
-	gnuplot_set_xlabel(handle, (char*)"Energy (eV)");
-	gnuplot_set_ylabel(handle, (char*)"Cross-section (cm^-1)");
-	gnuplot_cmd(handle, (char*)title.str().c_str());
-	gnuplot_cmd(handle, (char*)"set logscale xy");
-	gnuplot_setstyle(handle, (char*)"lines");
-
-	/* Loop through each material */
-	for (i=isotopes; i != NULL; i=va_arg(xs_types, char*)) {
-
-		material = _materials.at(i).second;
-
-		/* Load xs_values vector */
-		for (int j=0; j < num_energies; j++)
-			xs_values[j] = material->getTotalXS(energies[j]);
-
-		/* Plot the cross-section */
-		gnuplot_saveplot(handle, (char*)filename.str().c_str());
-		gnuplot_plot_xy(handle, energies, xs_values, num_energies, i);
-	}
-
-	gnuplot_close(handle);
-	va_end(xs_types);
-
-	delete [] energies;
-	delete [] xs_values;
-
-	return;
 }

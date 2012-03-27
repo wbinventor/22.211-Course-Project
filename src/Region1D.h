@@ -16,6 +16,7 @@
 #include <stdarg.h>
 #include <omp.h>
 #include "Material.h"
+#include "Isotope.h"
 #include "Neutron.h"
 #include "Surface.h"
 #include "Binner.h"
@@ -41,7 +42,7 @@ typedef enum regionTypes {
  * The Region1D class represents a single dimensional region
  * bounded by two planes, or Surface class objects. The region
  * contains a vector of neutrons which live within it and is filled
- * by a set of Material class objects, each with a different number
+ * by a set of Isotope class objects, each with a different number
  * density. The Region1D class contains all of the physics for moving
  * colliding neutrons
  */
@@ -65,9 +66,12 @@ private:
 	/* Binners for tallying */
 	std::vector<Binner*> _bin_sets;
 
+	// ???? //
+	Material* _material;
+
 	/* Map of number density and material pointers */
-	std::map<char*, std::pair<float, Material*> > _materials;
-	float _tot_num_density;
+//	std::map<char*, std::pair<float, Isotope*> > _isotopes;
+//	float _tot_num_density;
 	float _volume;
 
 	/* Two region pin cell parameters */
@@ -90,24 +94,8 @@ public:
 
     Surface* getLeftSurface() const;
     Surface* getRightSurface() const;
-    float getTotalNumberDensity();
     float getVolume();
-    float getTotalMacroXS(float energy);
-    float getTotalMicroXS(float energy);
-    float getCaptureMacroXS(float energy);
-    float getCaptureMicroXS(float energy);
-    float getElasticMacroXS(float energy);
-    float getElasticMicroXS(float energy);
-    float getInelasticMacroXS(float energy);
-    float getInelasticMicroXS(float energy);
-    float getScatterMacroXS(float energy);
-    float getScatterMicroXS(float energy);
-    float getFissionMacroXS(float energy);
-    float getFissionMicroXS(float energy);
-    float getAbsorbMacroXS(float energy);
-    float getAbsorbMicroXS(float energy);
-    float getTransportMicroXS(float energy);
-    float getTransportMacroXS(float energy);
+    Material* getMaterial();
     regionType getRegionType();
     char* getRegionName();
     bool isFuel();
@@ -115,7 +103,7 @@ public:
     Region1D* getOtherPinCellRegion();
 
     void setRegionName(char* region_name);
-    void addMaterial(Material *material, float num_density);
+    void setMaterial(Material* material);
     void setLeftSurface(Surface* surface);
     void setRightSurface(Surface* surface);
     void setVolume(float volume);
@@ -128,10 +116,11 @@ public:
     void useImplicitCapture(float weight_low, float weight_avg);
     void useForcedCollision(float weight_low, float weight_avg);
 
-    Material* sampleMaterial(float energy);
     bool playRussianRoulette(neutron* neutron);
-    float computeFuelFuelCollisionProb(float energy);
-    float computeModeratorFuelCollisionProb(float energy);
+//    float computeFuelFuelCollisionProb(float energy);
+//    float computeModeratorFuelCollisionProb(float energy);
+    float computeFuelFuelCollisionProb(int energy_index);
+    float computeModeratorFuelCollisionProb(int energy_index);
     void clearBinners();
     bool contains(float x);
     bool onBoundary(float x);
@@ -141,11 +130,6 @@ public:
     void twoRegionNeutronTransferral();
     void moveNeutrons();
     int getNumNeutrons();
-
-    void plotMacroscopicCrossSections(float star_energy, float end_energy,
-									int num_energies, char* isotopes, ...);
-    void plotMicroscopicCrossSections(float star_energy, float end_energy,
-									int num_energies, char* isotopes, ...);
 };
 
 #endif /* REGION1D_H_ */

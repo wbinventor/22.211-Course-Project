@@ -17,6 +17,7 @@
 #include "Timer.h"
 #include "Options.h"
 #include "BatchBinSet.h"
+#include "Isotope.h"
 #include "Material.h"
 #include "Neutron.h"
 #include "gnuplot.h"
@@ -24,9 +25,9 @@
 #include "Fissioner.h"
 
 
-//TODO: Cell-averaged diffusion coefficients
 //TODO: variance for k-inf
 //TODO: output k-inf as computed by two group xs
+//TODO: rescale material xs, speedup/reduce number of times computing total xs
 
 int main(int argc, const char **argv) {
 
@@ -56,10 +57,6 @@ int main(int argc, const char **argv) {
 	BatchBinSet* fuel_flux = new BatchBinSet();
 	BatchBinSet* moderator_flux = new BatchBinSet();
 
-	total_flux->setBatchBinSetName((char*)"total flux");
-	fuel_flux->setBatchBinSetName((char*)"fuel flux");
-	moderator_flux->setBatchBinSetName((char*)"moderator flux");
-
 	total_flux->createBinners(1E-6, 1E7, num_bins, num_batches,
 							LOGARITHMIC, FLUX_ENERGY, (char*)"all");
 	fuel_flux->createBinners(1E-6, 1E7, num_bins, num_batches,
@@ -71,9 +68,6 @@ int main(int argc, const char **argv) {
 	/* Create bins to compute total fission and absorption rates */
 	BatchBinSet* tot_fiss_rate = new BatchBinSet();
 	BatchBinSet* tot_abs_rate = new BatchBinSet();
-
-	tot_fiss_rate->setBatchBinSetName((char*)"total fission rate");
-	tot_abs_rate->setBatchBinSetName((char*)"total absorption rate");
 
 	tot_fiss_rate->createBinners(1E-7, 1E7, 1, num_batches, EQUAL,
 									FISSION_RATE_ENERGY, (char*)"all");
@@ -96,20 +90,6 @@ int main(int argc, const char **argv) {
 	BatchBinSet* U238_fission_rate_2G = new BatchBinSet();
 
 	BatchBinSet* two_group_flux = new BatchBinSet();
-
-	H1_capture_rate_2G->setBatchBinSetName((char*)"H1 2 group capture rate");
-	H1_elastic_rate_2G->setBatchBinSetName((char*)"H1 2 group elastic rate");
-	O16_elastic_rate_2G->setBatchBinSetName((char*)"O16 2 group elastic rate");
-	ZR90_elastic_rate_2G->setBatchBinSetName((char*)"ZR90 2 group elastic rate");
-
-	U235_capture_rate_2G->setBatchBinSetName((char*)"U235 2 group capture rate");
-	U235_elastic_rate_2G->setBatchBinSetName((char*)"U235 2 group elastic rate");
-	U235_fission_rate_2G->setBatchBinSetName((char*)"U235 2 group fission rate");
-	U238_capture_rate_2G->setBatchBinSetName((char*)"U238 2 group capture rate");
-	U238_elastic_rate_2G->setBatchBinSetName((char*)"U238 2 group elastic rate");
-	U238_fission_rate_2G->setBatchBinSetName((char*)"U238 2 group fission rate");
-
-	two_group_flux->setBatchBinSetName((char*)"two group flux");
 
 	float two_group_E_ranges[3] = {0.0, 0.625, 1E7};
 
@@ -144,9 +124,6 @@ int main(int argc, const char **argv) {
 	BatchBinSet* fuel_flux_ratio = new BatchBinSet();
 	BatchBinSet* moderator_flux_ratio = new BatchBinSet();
 
-	fuel_flux_ratio->setBatchBinSetName((char*)"fuel flux ratio");
-	moderator_flux_ratio->setBatchBinSetName((char*)"moderator flux ratio");
-
 	float flux_ratio_E_ranges[14] = {0.0, 0.1, 0.5, 1.0, 6.0, 10.0, 25.0,
 									50.0, 100.0, 1000.0, 10000.0, 100000.0,
 									500000.0, 10000000.0};
@@ -162,10 +139,6 @@ int main(int argc, const char **argv) {
 	BatchBinSet* coll_rate_2G = new BatchBinSet();
 	BatchBinSet* transport_rate_2G = new BatchBinSet();
 	BatchBinSet* diffusion_rate_2G = new BatchBinSet();
-
-	coll_rate_2G->setBatchBinSetName((char*)"two group collision rate");
-	transport_rate_2G->setBatchBinSetName((char*)"two group transport rate");
-	diffusion_rate_2G->setBatchBinSetName((char*)"two group diffusion rate");
 
 	coll_rate_2G->createBinners(two_group_E_ranges, 2, num_batches,
 								COLLISION_RATE_ENERGY, (char*)"all");
@@ -188,7 +161,7 @@ int main(int argc, const char **argv) {
 	float rho_coolant = 0.9966;
 	float enrichment = 0.03035;
 
-	/* Material number densities */
+	/* Isotope number densities */
 	float N_A = 6.023E23;	/* Avogadro's number (at / mol) */
 	float N_U238 = rho_fuel*N_A*(1.0 - enrichment) / ((238.0 *
 					(1.0 - enrichment)) + (235.0*enrichment) + (16.0*2.0));
@@ -278,52 +251,57 @@ int main(int argc, const char **argv) {
 	log_printf(NORMAL, "");
 
 
-	/* Create materials*/
+	/* Create isotopes*/
 	char* delim = (char*)"\t";
 
-	Material* H1 = new Material();
+	Isotope* H1 = new Isotope();
 	H1->setA(1);
 	H1->setIsotopeType((char*)"H1");
 	H1->loadXS((char*)"pendf/h-1_capture.txt", CAPTURE, delim);
 	H1->loadXS((char*)"pendf/h-1_elastic.txt", ELASTIC, delim);
 	H1->setElasticAngleType(ISOTROPIC_LAB);
 	H1->initializeThermalScattering(1E-6, 15, 1000, 15);
-	H1->plotXS(1E-5, 1E7, 10000, CAPTURE, ELASTIC, -1);
+//	H1->plotXS(1E-5, 1E7, 10000, CAPTURE, ELASTIC, -1);
 
-	Material* O16 = new Material();
+	Isotope* O16 = new Isotope();
 	O16->setA(16);
 	O16->setIsotopeType((char*)"O16");
 	O16->loadXS((char*)"pendf/o-16_elastic.txt", ELASTIC, delim);
 	O16->setElasticAngleType(ISOTROPIC_LAB);
-	O16->plotXS(1E-5, 1E7, 10000, ELASTIC, -1);
+//	O16->plotXS(1E-5, 1E7, 10000, ELASTIC, -1);
 
-	Material* ZR90 = new Material();
+	Isotope* ZR90 = new Isotope();
 	ZR90->setA(90);
 	ZR90->setIsotopeType((char*)"ZR90");
 	ZR90->loadXS((char*)"pendf/zr-90_elastic.txt", ELASTIC, delim);
 	ZR90->setElasticAngleType(ISOTROPIC_LAB);
-	ZR90->plotXS(1E-5, 1E7, 10000, ELASTIC, -1);
+//	ZR90->plotXS(1E-5, 1E7, 10000, ELASTIC, -1);
 
-	Material* U235 = new Material();
+	Isotope* U235 = new Isotope();
 	U235->setA(235);
 	U235->setIsotopeType((char*)"U235");
 	U235->loadXS((char*)"pendf/u-235_capture.txt", CAPTURE, delim);
 	U235->setOneGroupElasticXS(11.4, ISOTROPIC_LAB);
 	U235->loadXS((char*)"pendf/u-235_fission.txt", FISSION, delim);
-	U235->plotXS(1E-5, 1E7, 10000, CAPTURE, ELASTIC, FISSION, -1);
+//	U235->plotXS(1E-5, 1E7, 10000, CAPTURE, ELASTIC, FISSION, -1);
 
-	Material* U238 = new Material();
+	Isotope* U238 = new Isotope();
 	U238->setA(238);
 	U238->setIsotopeType((char*)"U238");
 	U238->loadXS((char*)"pendf/u-238_capture.txt", CAPTURE, delim);
 	U238->setOneGroupElasticXS(11.3, ISOTROPIC_LAB);
 	U238->loadXS((char*)"pendf/u-238_fission.txt", FISSION, delim);
-	U238->plotXS(1E-5, 1E7, 10000, CAPTURE, ELASTIC, FISSION, -1);
+//	U238->plotXS(1E-5, 1E7, 10000, CAPTURE, ELASTIC, FISSION, -1);
+
+
+	/* Create Materials */
+	Material* moderator = new Material[num_threads];
+	Material* fuel = new Material[num_threads];
 
 
 	/* Create Regions for each thread */
-	Region1D* fuel = new Region1D[num_threads];
-	Region1D* moderator = new Region1D[num_threads];
+	Region1D* pellet = new Region1D[num_threads];
+	Region1D* coolant = new Region1D[num_threads];
 
 	/* Create Fissioners for each thread */
 	Fissioner* fissioners = new Fissioner[num_threads];
@@ -331,35 +309,35 @@ int main(int argc, const char **argv) {
 	/* Create Region class objects for each thread */
 	for (int i=0; i < num_threads; i++) {
 
-		/* Add material clones to the regions for each thread */
-		fuel[i].addMaterial(U235->clone(), N_U235);
-		fuel[i].addMaterial(U238->clone(), N_U238);
-		fuel[i].addMaterial(O16->clone(), N_O16);
+		/* Initialize Materials for each thread with isotope clones */
+		moderator[i].setMaterialName((char*)"moderator");
+		fuel[i].setMaterialName((char*)"fuel");
 
-		moderator[i].addMaterial(ZR90->clone(), N_ZR90);
-		moderator[i].addMaterial(H1->clone(), N_H1);
-		moderator[i].addMaterial(O16->clone(), N_H2O);
+		moderator[i].addIsotope(ZR90->clone(), N_ZR90);
+		moderator[i].addIsotope(H1->clone(), N_H1);
+		moderator[i].addIsotope(O16->clone(), N_H2O);
+		moderator[i].rescaleCrossSections(1E-7, 1E7, 50000, LOGARITHMIC);
+
+		fuel[i].addIsotope(U235->clone(), N_U235);
+		fuel[i].addIsotope(U238->clone(), N_U238);
+		fuel[i].addIsotope(O16->clone(), N_O16);
+		fuel[i].rescaleCrossSections(1E-7, 1E7, 50000, LOGARITHMIC);
 
 		/* Set the two region collision probability parameters */
-		fuel[i].setRegionName((char*)"Fuel");
-		fuel[i].setAsFuel();
-		fuel[i].setOtherPinCellRegion(&moderator[i]);
-		fuel[i].setVolume(v_fuel);
-		fuel[i].setTwoRegionPinCellParams(sigma_e, beta, alpha1, alpha2);
+		pellet[i].setRegionName((char*)"pellet");
+		pellet[i].setMaterial(&fuel[i]);
+		pellet[i].setAsFuel();
+		pellet[i].setOtherPinCellRegion(&coolant[i]);
+		pellet[i].setVolume(v_fuel);
+		pellet[i].setTwoRegionPinCellParams(sigma_e, beta, alpha1, alpha2);
 
-		moderator[i].setRegionName((char*)"Moderator");
-		moderator[i].setAsModerator();
-		moderator[i].setOtherPinCellRegion(&fuel[i]);
-		moderator[i].setVolume(v_moderator);
-		moderator[i].setTwoRegionPinCellParams(sigma_e, beta, alpha1, alpha2);
+		coolant[i].setRegionName((char*)"coolant");
+		coolant[i].setMaterial(&moderator[i]);
+		coolant[i].setAsModerator();
+		coolant[i].setOtherPinCellRegion(&pellet[i]);
+		coolant[i].setVolume(v_moderator);
+		coolant[i].setTwoRegionPinCellParams(sigma_e, beta, alpha1, alpha2);
 
-		/* Use implicit capture if indicated at runtime */
-		if (options.useImplicitCapture()) {
-			fuel[i].useImplicitCapture(options.getWeightLow(),
-											options.getWeightAvg());
-			moderator[i].useImplicitCapture(options.getWeightLow(),
-											options.getWeightAvg());
-		}
 		/* Set the fissioner class for this thread to have 10MeV maximum and
 		 * 5000 sample bins */
 		fissioners[i].setEMax(10);
@@ -367,6 +345,14 @@ int main(int argc, const char **argv) {
 		fissioners[i].buildCDF();
 	}
 
+
+//	moderator[0].getIsotope((char*)"H1")->plotXS(1E-7, 1E7, 10000, CAPTURE, ELASTIC);
+//	moderator[0].getIsotope((char*)"ZR90")->plotXS(1E-7, 1E7, 10000, ELASTIC);
+//	fuel[0].getIsotope((char*)"U235")->plotXS(1E-7, 1E7, 10000, CAPTURE, ELASTIC, FISSION);
+//	fuel[0].getIsotope((char*)"U238")->plotXS(1E-7, 1E7, 10000, CAPTURE, ELASTIC, FISSION);
+//
+//	moderator[0].plotMacroscopicCrossSections(1E-7, 1E7, 1000, "H1", "O16", "ZR90", NULL);
+//	fuel[0].plotMacroscopicCrossSections(1E-7, 1E7, 1000, "U235", "U238", "O16", NULL);
 
 	/* Run the simulation */
 	log_printf(NORMAL, "*******************************************************"
@@ -386,7 +372,8 @@ int main(int argc, const char **argv) {
 							U238_capture_rate_2G, U238_elastic_rate_2G,\
 							U238_fission_rate_2G, H1_capture_rate_2G,\
 							H1_elastic_rate_2G, O16_elastic_rate_2G,\
-							ZR90_elastic_rate_2G, fuel, moderator, fissioners)
+							ZR90_elastic_rate_2G, fuel, moderator, \
+							pellet, coolant, fissioners)
 	{
 		/* Loop over batches */
 		#pragma omp for private(num_gen, num_alive)
@@ -395,39 +382,39 @@ int main(int argc, const char **argv) {
 			int thread_num = omp_get_thread_num();
 			log_printf(NORMAL, "Batch: %d\tThread: %d", b, thread_num);
 
-			/* Set the flux bins for this batch */
-			fuel[thread_num].clearBinners();
-			fuel[thread_num].addBinner(total_flux->getBinner(b));
-			fuel[thread_num].addBinner(fuel_flux->getBinner(b));
-			fuel[thread_num].addBinner(fuel_flux_ratio->getBinner(b));
-			fuel[thread_num].addBinner(tot_fiss_rate->getBinner(b));
-			fuel[thread_num].addBinner(tot_abs_rate->getBinner(b));
-			fuel[thread_num].addBinner(U235_capture_rate_2G->getBinner(b));
-			fuel[thread_num].addBinner(U235_elastic_rate_2G->getBinner(b));
-			fuel[thread_num].addBinner(U235_fission_rate_2G->getBinner(b));
-			fuel[thread_num].addBinner(U238_capture_rate_2G->getBinner(b));
-			fuel[thread_num].addBinner(U238_elastic_rate_2G->getBinner(b));
-			fuel[thread_num].addBinner(U238_fission_rate_2G->getBinner(b));
-			fuel[thread_num].addBinner(O16_elastic_rate_2G->getBinner(b));
-			fuel[thread_num].addBinner(two_group_flux->getBinner(b));
-			fuel[thread_num].addBinner(coll_rate_2G->getBinner(b));
-			fuel[thread_num].addBinner(transport_rate_2G->getBinner(b));
-			fuel[thread_num].addBinner(diffusion_rate_2G->getBinner(b));
+			/* Set the binns for this batch */
+			pellet[thread_num].clearBinners();
+			pellet[thread_num].addBinner(total_flux->getBinner(b));
+			pellet[thread_num].addBinner(fuel_flux->getBinner(b));
+			pellet[thread_num].addBinner(fuel_flux_ratio->getBinner(b));
+			pellet[thread_num].addBinner(tot_fiss_rate->getBinner(b));
+			pellet[thread_num].addBinner(tot_abs_rate->getBinner(b));
+			pellet[thread_num].addBinner(U235_capture_rate_2G->getBinner(b));
+			pellet[thread_num].addBinner(U235_elastic_rate_2G->getBinner(b));
+			pellet[thread_num].addBinner(U235_fission_rate_2G->getBinner(b));
+			pellet[thread_num].addBinner(U238_capture_rate_2G->getBinner(b));
+			pellet[thread_num].addBinner(U238_elastic_rate_2G->getBinner(b));
+			pellet[thread_num].addBinner(U238_fission_rate_2G->getBinner(b));
+			pellet[thread_num].addBinner(O16_elastic_rate_2G->getBinner(b));
+			pellet[thread_num].addBinner(two_group_flux->getBinner(b));
+			pellet[thread_num].addBinner(coll_rate_2G->getBinner(b));
+			pellet[thread_num].addBinner(transport_rate_2G->getBinner(b));
+			pellet[thread_num].addBinner(diffusion_rate_2G->getBinner(b));
 
-			moderator[thread_num].clearBinners();
-			moderator[thread_num].addBinner(total_flux->getBinner(b));
-			moderator[thread_num].addBinner(moderator_flux->getBinner(b));
-			moderator[thread_num].addBinner(moderator_flux_ratio->getBinner(b));
-			moderator[thread_num].addBinner(tot_fiss_rate->getBinner(b));
-			moderator[thread_num].addBinner(tot_abs_rate->getBinner(b));
-			moderator[thread_num].addBinner(H1_capture_rate_2G->getBinner(b));
-			moderator[thread_num].addBinner(H1_elastic_rate_2G->getBinner(b));
-			moderator[thread_num].addBinner(O16_elastic_rate_2G->getBinner(b));
-			moderator[thread_num].addBinner(ZR90_elastic_rate_2G->getBinner(b));
-			moderator[thread_num].addBinner(two_group_flux->getBinner(b));
-			moderator[thread_num].addBinner(coll_rate_2G->getBinner(b));
-			moderator[thread_num].addBinner(transport_rate_2G->getBinner(b));
-			moderator[thread_num].addBinner(diffusion_rate_2G->getBinner(b));
+			coolant[thread_num].clearBinners();
+			coolant[thread_num].addBinner(total_flux->getBinner(b));
+			coolant[thread_num].addBinner(moderator_flux->getBinner(b));
+			coolant[thread_num].addBinner(moderator_flux_ratio->getBinner(b));
+			coolant[thread_num].addBinner(tot_fiss_rate->getBinner(b));
+			coolant[thread_num].addBinner(tot_abs_rate->getBinner(b));
+			coolant[thread_num].addBinner(H1_capture_rate_2G->getBinner(b));
+			coolant[thread_num].addBinner(H1_elastic_rate_2G->getBinner(b));
+			coolant[thread_num].addBinner(O16_elastic_rate_2G->getBinner(b));
+			coolant[thread_num].addBinner(ZR90_elastic_rate_2G->getBinner(b));
+			coolant[thread_num].addBinner(two_group_flux->getBinner(b));
+			coolant[thread_num].addBinner(coll_rate_2G->getBinner(b));
+			coolant[thread_num].addBinner(transport_rate_2G->getBinner(b));
+			coolant[thread_num].addBinner(diffusion_rate_2G->getBinner(b));
 
 			/* Initialize all neutrons for this batch and add them to slab 1 */
 			for (int n=0; n < num_neutrons; n++) {
@@ -435,7 +422,7 @@ int main(int argc, const char **argv) {
 				new_neutron->_x = 0.0;
 				new_neutron->_mu = (float(rand()) / RAND_MAX) * 2 - 1;
 				new_neutron->_energy = fissioners[thread_num].emitNeutroneV();
-				fuel[thread_num].addNeutron(new_neutron);
+				pellet[thread_num].addNeutron(new_neutron);
 			}
 
 			/* Loop over all neutrons until they are all dead */
@@ -452,20 +439,20 @@ int main(int argc, const char **argv) {
 
 				/* Transfer neutrons between regions based on
 				 * two region collision probabilities */
-				fuel[thread_num].twoRegionNeutronTransferral();
-				moderator[thread_num].twoRegionNeutronTransferral();
+				pellet[thread_num].twoRegionNeutronTransferral();
+				coolant[thread_num].twoRegionNeutronTransferral();
 
 				/* Update each region's vector of neutrons with those
 				 * neutrons which were just transferred */
-				fuel[thread_num].initializeTransferredNeutrons();
-				moderator[thread_num].initializeTransferredNeutrons();
+				pellet[thread_num].initializeTransferredNeutrons();
+				coolant[thread_num].initializeTransferredNeutrons();
 
 				/* Move neutrons within each region */
-				fuel[thread_num].moveNeutrons();
-				moderator[thread_num].moveNeutrons();
+				pellet[thread_num].moveNeutrons();
+				coolant[thread_num].moveNeutrons();
 
-				num_alive = fuel[thread_num].getNumNeutrons() +
-							moderator[thread_num].getNumNeutrons();
+				num_alive = pellet[thread_num].getNumNeutrons() +
+							coolant[thread_num].getNumNeutrons();
 			}
 		}
 	}
@@ -485,22 +472,18 @@ int main(int argc, const char **argv) {
 	tot_fiss_rate->computeScaledBatchStatistics(num_neutrons*v_total);
 	tot_abs_rate->computeScaledBatchStatistics(num_neutrons*v_total);
 
-
 	/* Compute batch statistics for one group cross-sections */
 	H1_capture_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 	H1_elastic_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 	O16_elastic_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 	ZR90_elastic_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
-
 	U235_capture_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 	U235_elastic_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 	U235_fission_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 	U238_capture_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 	U238_elastic_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 	U238_fission_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
-
 	two_group_flux->computeScaledBatchStatistics(num_neutrons*v_total);
-
 	coll_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 	transport_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 	diffusion_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
@@ -560,7 +543,9 @@ int main(int argc, const char **argv) {
 													"*************************");
 	log_printf(RESULT, "");
 	float* two_group_flux_mu = two_group_flux->getBatchMu();
-	log_printf(RESULT, "Ratio = %f", two_group_flux_mu[1] / two_group_flux_mu[0]);
+	float flux1 = two_group_flux_mu[0];
+	float flux2 = two_group_flux_mu[1];
+	log_printf(RESULT, "Ratio = %f", flux2 / flux1);
 	log_printf(RESULT, "");
 
 
@@ -581,53 +566,53 @@ int main(int argc, const char **argv) {
 						two_group_flux->getBinner(0)->getBinEdges()[2]);
 
 	/* H1 capture */
-	xs1 = H1_capture_rate_2G->getBatchMu()[0] / two_group_flux_mu[0];
-	xs2 = H1_capture_rate_2G->getBatchMu()[1] / two_group_flux_mu[1];
+	xs1 = H1_capture_rate_2G->getBatchMu()[0] / flux1;
+	xs2 = H1_capture_rate_2G->getBatchMu()[1] / flux2;
 	log_printf(RESULT, "H1 Capture: \t\t%f\t\t%f", xs1, xs2);
 
 	/* H1 elastic */
-	xs1 = H1_elastic_rate_2G->getBatchMu()[0] / two_group_flux_mu[0];
-	xs2 = H1_elastic_rate_2G->getBatchMu()[1] / two_group_flux_mu[1];
+	xs1 = H1_elastic_rate_2G->getBatchMu()[0] / flux1;
+	xs2 = H1_elastic_rate_2G->getBatchMu()[1] / flux2;
 	log_printf(RESULT, "H1 Elastic: \t\t%f\t\t%f", xs1, xs2);
 
 	/* O16 elastic */
-	xs1 = O16_elastic_rate_2G->getBatchMu()[0] / two_group_flux_mu[0];
-	xs2 = O16_elastic_rate_2G->getBatchMu()[1] / two_group_flux_mu[1];
+	xs1 = O16_elastic_rate_2G->getBatchMu()[0] / flux1;
+	xs2 = O16_elastic_rate_2G->getBatchMu()[1] / flux2;
 	log_printf(RESULT, "O16 Elastic: \t\t%f\t\t%f", xs1, xs2);
 
 	/* ZR90 elastic */
-	xs1 = ZR90_elastic_rate_2G->getBatchMu()[0] / two_group_flux_mu[0];
-	xs2 = ZR90_elastic_rate_2G->getBatchMu()[1] / two_group_flux_mu[1];
+	xs1 = ZR90_elastic_rate_2G->getBatchMu()[0] / flux1;
+	xs2 = ZR90_elastic_rate_2G->getBatchMu()[1] / flux2;
 	log_printf(RESULT, "ZR90 Elastic: \t\t%f\t\t%f", xs1, xs2);
 
 	/* U235 capture */
-	xs1 = U235_capture_rate_2G->getBatchMu()[0] / two_group_flux_mu[0];
-	xs2 = U235_capture_rate_2G->getBatchMu()[1] / two_group_flux_mu[1];
+	xs1 = U235_capture_rate_2G->getBatchMu()[0] / flux1;
+	xs2 = U235_capture_rate_2G->getBatchMu()[1] / flux2;
 	log_printf(RESULT, "U235 Capture: \t\t%f\t\t%f", xs1, xs2);
 
 	/* U235 elastic */
-	xs1 = U235_elastic_rate_2G->getBatchMu()[0] / two_group_flux_mu[0];
-	xs2 = U235_elastic_rate_2G->getBatchMu()[1] / two_group_flux_mu[1];
+	xs1 = U235_elastic_rate_2G->getBatchMu()[0] / flux1;
+	xs2 = U235_elastic_rate_2G->getBatchMu()[1] / flux2;
 	log_printf(RESULT, "U235 Elastic: \t\t%f\t\t%f", xs1, xs2);
 
 	/* U235 fission */
-	xs1 = U235_fission_rate_2G->getBatchMu()[0] / two_group_flux_mu[0];
-	xs2 = U235_fission_rate_2G->getBatchMu()[1] / two_group_flux_mu[1];
+	xs1 = U235_fission_rate_2G->getBatchMu()[0] / flux1;
+	xs2 = U235_fission_rate_2G->getBatchMu()[1] / flux2;
 	log_printf(RESULT, "U235 Fission: \t\t%f\t\t%f", xs1, xs2);
 
 	/* U238 capture */
-	xs1 = U238_capture_rate_2G->getBatchMu()[0] / two_group_flux_mu[0];
-	xs2 = U238_capture_rate_2G->getBatchMu()[1] / two_group_flux_mu[1];
+	xs1 = U238_capture_rate_2G->getBatchMu()[0] / flux1;
+	xs2 = U238_capture_rate_2G->getBatchMu()[1] / flux2;
 	log_printf(RESULT, "U238 Capture: \t\t%f\t\t%f", xs1, xs2);
 
 	/* U238 elastic */
-	xs1 = U238_elastic_rate_2G->getBatchMu()[0] / two_group_flux_mu[0];
-	xs2 = U238_elastic_rate_2G->getBatchMu()[1] / two_group_flux_mu[1];
+	xs1 = U238_elastic_rate_2G->getBatchMu()[0] / flux1;
+	xs2 = U238_elastic_rate_2G->getBatchMu()[1] / flux2;
 	log_printf(RESULT, "U238 Elastic: \t\t%f\t\t%f", xs1, xs2);
 
 	/* U238 fission */
-	xs1 = U238_fission_rate_2G->getBatchMu()[0] / two_group_flux_mu[0];
-	xs2 = U238_fission_rate_2G->getBatchMu()[1] / two_group_flux_mu[1];
+	xs1 = U238_fission_rate_2G->getBatchMu()[0] / flux1;
+	xs2 = U238_fission_rate_2G->getBatchMu()[1] / flux2;
 	log_printf(RESULT, "U238 Fission: \t\t%f\t\t%f", xs1, xs2);
 
 	log_printf(RESULT, "");
@@ -645,8 +630,7 @@ int main(int argc, const char **argv) {
 						two_group_flux->getBinner(0)->getBinEdges()[1],
 						two_group_flux->getBinner(0)->getBinEdges()[1],
 						two_group_flux->getBinner(0)->getBinEdges()[2]);
-	float flux1 = two_group_flux->getBatchMu()[0];
-	float flux2 = two_group_flux->getBatchMu()[1];
+
 	float sigma_t1, sigma_t2;
 	float sigma_tr1, sigma_tr2;
 	float D1, D2;
@@ -690,19 +674,14 @@ int main(int argc, const char **argv) {
 			moderator_flux->getBatchMu(), num_bins, (char*)"Moderator Flux");
 	gnuplot_close(handle);
 
-	fuel[0].plotMacroscopicCrossSections(1E-5, 1E7, 10000, (char*)"U235",
-											(char*)"U238", (char*)"O16", NULL);
-	moderator[0].plotMacroscopicCrossSections(1E-5, 1E7, 10000, (char*)"H1",
-											(char*)"ZR90", (char*)"O16", NULL);
-	fuel[0].plotMicroscopicCrossSections(1E-5, 1E7, 10000, (char*)"U235",
-											(char*)"U238", (char*)"O16", NULL);
-	moderator[0].plotMicroscopicCrossSections(1E-5, 1E7, 10000, (char*)"H1",
-											(char*)"ZR90", (char*)"O16", NULL);
 
 	/* Free all allocated memory */
-	delete [] fuel;
-	delete [] moderator;
+	delete [] pellet;
+	delete [] coolant;
 	delete [] fissioners;
+
+	delete [] moderator;
+	delete [] fuel;
 
 	delete total_flux;
 	delete fuel_flux;
