@@ -74,8 +74,31 @@ int main(int argc, const char **argv) {
 									ABSORPTION_RATE_ENERGY, (char*)"all");
 	float nu_bar = 2.455;	/* CASMO edit for average # neutrons per fission */
 
+	/* Create bins to compute two group cell-averaged cross-sections */
+	BatchBinSet* capture_2G = new BatchBinSet();
+	BatchBinSet* absorb_2G = new BatchBinSet();
+	BatchBinSet* fission_2G = new BatchBinSet();
+	BatchBinSet* elastic_2G = new BatchBinSet();
+	BatchBinSet* total_2G = new BatchBinSet();
+	BatchBinSet* two_group_flux = new BatchBinSet();
 
-	/* Create bins to compute two group cross-sections */
+	float two_group_E_ranges[3] = {0.0, 0.625, 1E7};
+
+	capture_2G->createBinners(two_group_E_ranges, 2, num_batches,
+							CAPTURE_RATE_ENERGY, (char*)"all");
+	absorb_2G->createBinners(two_group_E_ranges, 2, num_batches,
+							ABSORPTION_RATE_ENERGY, (char*)"all");
+	fission_2G->createBinners(two_group_E_ranges, 2, num_batches,
+							FISSION_RATE_ENERGY, (char*)"all");
+	elastic_2G->createBinners(two_group_E_ranges, 2, num_batches,
+							ELASTIC_RATE_ENERGY, (char*)"all");
+	total_2G->createBinners(two_group_E_ranges, 2, num_batches,
+							COLLISION_RATE_ENERGY, (char*)"all");
+	two_group_flux->createBinners(two_group_E_ranges, 2, num_batches,
+									FLUX_ENERGY, (char*)"all");
+
+
+	/* Create bins to compute two group isotopic cross-sections */
 	BatchBinSet* H1_capture_rate_2G = new BatchBinSet();
 	BatchBinSet* H1_elastic_rate_2G = new BatchBinSet();
 	BatchBinSet* O16_elastic_rate_2G = new BatchBinSet();
@@ -87,10 +110,6 @@ int main(int argc, const char **argv) {
 	BatchBinSet* U238_capture_rate_2G = new BatchBinSet();
 	BatchBinSet* U238_elastic_rate_2G = new BatchBinSet();
 	BatchBinSet* U238_fission_rate_2G = new BatchBinSet();
-
-	BatchBinSet* two_group_flux = new BatchBinSet();
-
-	float two_group_E_ranges[3] = {0.0, 0.625, 1E7};
 
 	H1_capture_rate_2G->createBinners(two_group_E_ranges, 2, num_batches,
 										CAPTURE_RATE_ENERGY, (char*)"H1");
@@ -113,9 +132,6 @@ int main(int argc, const char **argv) {
 										ELASTIC_RATE_ENERGY, (char*)"U238");
 	U238_fission_rate_2G->createBinners(two_group_E_ranges, 2, num_batches,
 										FISSION_RATE_ENERGY, (char*)"U238");
-
-	two_group_flux->createBinners(two_group_E_ranges, 2, num_batches,
-									FLUX_ENERGY, (char*)"all");
 
 
 	/* Create bins to compute moderator to fuel flux ratios */
@@ -386,6 +402,11 @@ int main(int argc, const char **argv) {
 			pellet[thread_num].addBinner(coll_rate_2G->getBinner(b));
 			pellet[thread_num].addBinner(transport_rate_2G->getBinner(b));
 			pellet[thread_num].addBinner(diffusion_rate_2G->getBinner(b));
+			pellet[thread_num].addBinner(capture_2G->getBinner(b));
+			pellet[thread_num].addBinner(fission_2G->getBinner(b));
+			pellet[thread_num].addBinner(absorb_2G->getBinner(b));
+			pellet[thread_num].addBinner(elastic_2G->getBinner(b));
+			pellet[thread_num].addBinner(total_2G->getBinner(b));
 
 			coolant[thread_num].clearBinners();
 			coolant[thread_num].addBinner(total_flux->getBinner(b));
@@ -401,6 +422,11 @@ int main(int argc, const char **argv) {
 			coolant[thread_num].addBinner(coll_rate_2G->getBinner(b));
 			coolant[thread_num].addBinner(transport_rate_2G->getBinner(b));
 			coolant[thread_num].addBinner(diffusion_rate_2G->getBinner(b));
+			coolant[thread_num].addBinner(capture_2G->getBinner(b));
+			coolant[thread_num].addBinner(fission_2G->getBinner(b));
+			coolant[thread_num].addBinner(absorb_2G->getBinner(b));
+			coolant[thread_num].addBinner(elastic_2G->getBinner(b));
+			coolant[thread_num].addBinner(total_2G->getBinner(b));
 
 			/* Initialize all neutrons for this batch and add them to slab 1 */
 			for (int n=0; n < num_neutrons; n++) {
@@ -457,6 +483,13 @@ int main(int argc, const char **argv) {
 	/* Compute batch statistics for total fission and absorption rates */
 	tot_fiss_rate->computeScaledBatchStatistics(num_neutrons*v_total);
 	tot_abs_rate->computeScaledBatchStatistics(num_neutrons*v_total);
+
+	/* Compute batch statistics for cell-averaged macro cross-sections */
+	capture_2G->computeScaledBatchStatistics(num_neutrons*v_total);
+	fission_2G->computeScaledBatchStatistics(num_neutrons*v_total);
+	absorb_2G->computeScaledBatchStatistics(num_neutrons*v_total);
+	elastic_2G->computeScaledBatchStatistics(num_neutrons*v_total);
+	total_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 
 	/* Compute batch statistics for one group cross-sections */
 	H1_capture_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
@@ -549,7 +582,7 @@ int main(int argc, const char **argv) {
 	/* Print to the console the two group macroscopic cross-sections */
 	log_printf(RESULT, "*******************************************************"
 													"*************************");
-	log_printf(RESULT, "\t\t\tTwo Group Macroscopic Cross-Sections (cm^-1)");
+	log_printf(RESULT, "\t\tTwo Group Macroscopic Cross-Sections (cm^-1)");
 	log_printf(RESULT, "*******************************************************"
 													"*************************");
 	log_printf(RESULT, "");
@@ -617,6 +650,51 @@ int main(int argc, const char **argv) {
 
 	/* Print to the console the two group macroscopic cross-sections */
 	log_printf(RESULT, "*******************************************************"
+													"*************************");
+	log_printf(RESULT, "\tTwo Group Cell-Averaged Macroscopic "
+			"Cross-Sections (cm^-1)");
+	log_printf(RESULT, "*******************************************************"
+													"*************************");
+	log_printf(RESULT, "");
+
+	log_printf(RESULT, "\t\t\t[%1.1f eV - %1.3f eV]\t[%1.3f eV - %1.1e eV]",
+						two_group_flux->getBinner(0)->getBinEdges()[0],
+						two_group_flux->getBinner(0)->getBinEdges()[1],
+						two_group_flux->getBinner(0)->getBinEdges()[1],
+						two_group_flux->getBinner(0)->getBinEdges()[2]);
+
+	/* Flux */
+	log_printf(RESULT, "Flux: \t\t\t%f\t\t%f", flux1, flux2);
+
+	/* Capture */
+	xs1 = capture_2G->getBatchMu()[0] / flux1;
+	xs2 = capture_2G->getBatchMu()[1] / flux2;
+	log_printf(RESULT, "Capture: \t\t\t%f\t\t%f", xs1, xs2);
+
+	/* Fission */
+	xs1 = fission_2G->getBatchMu()[0] / flux1;
+	xs2 = fission_2G->getBatchMu()[1] / flux2;
+	log_printf(RESULT, "Fission: \t\t\t%f\t\t%f", xs1, xs2);
+
+	/* Absorption */
+	xs1 = absorb_2G->getBatchMu()[0] / flux1;
+	xs2 = absorb_2G->getBatchMu()[1] / flux2;
+	log_printf(RESULT, "Absorb: \t\t\t%f\t\t%f", xs1, xs2);
+
+	/* Elastic */
+	xs1 = elastic_2G->getBatchMu()[0] / flux1;
+	xs2 = elastic_2G->getBatchMu()[1] / flux2;
+	log_printf(RESULT, "Elastic: \t\t\t%f\t\t%f", xs1, xs2);
+
+	/* Total */
+	xs1 = total_2G->getBatchMu()[0] / flux1;
+	xs2 = total_2G->getBatchMu()[1] / flux2;
+	log_printf(RESULT, "Total: \t\t\t%f\t\t%f", xs1, xs2);
+	log_printf(RESULT, "");
+
+
+	/* Print to the console the two group macroscopic cross-sections */
+	log_printf(RESULT, "*******************************************************"
 												"*************************");
 	log_printf(RESULT, "\t\t\tTwo Group Diffusion Coefficients");
 	log_printf(RESULT, "*******************************************************"
@@ -637,19 +715,19 @@ int main(int argc, const char **argv) {
 	D1 = 1.0 / (3.0 * sigma_t1);
 	D2 = 1.0 / (3.0 * sigma_t2);
 
-	log_printf(RESULT, "1/(3*sigma_t):\t\t\t%f\t\t%f", D1, D2);
+	log_printf(RESULT, "1/(3*sigma_t):\t\t%f\t\t%f", D1, D2);
 
 	sigma_tr1 = transport_rate_2G->getBatchMu()[0] / flux1;
 	sigma_tr2  = transport_rate_2G->getBatchMu()[1] / flux2;
 	D1 = 1.0 / (3.0 * sigma_tr1);
 	D2 = 1.0 / (3.0 * sigma_tr2);
 
-	log_printf(RESULT, "1/(3*sigma_tr):\t\t\t%f\t\t%f", D1, D2);
+	log_printf(RESULT, "1/(3*sigma_tr):\t\t%f\t\t%f", D1, D2);
 
 	D1 = diffusion_rate_2G->getBatchMu()[0] / flux1;
 	D2 = diffusion_rate_2G->getBatchMu()[1] / flux2;
 
-	log_printf(RESULT, "Diff coeff:\t\t\t%f\t\t%f", D1, D2);
+	log_printf(RESULT, "Diff coeff:\t\t%f\t\t%f", D1, D2);
 
 	log_printf(RESULT, "");
 

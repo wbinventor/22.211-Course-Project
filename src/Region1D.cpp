@@ -1065,6 +1065,11 @@ void Region1D::moveNeutrons() {
 						isotope->getThermalScatteringEnergy(curr->_energy);
 					else
 						curr->_energy = energy;
+
+					//CORRECTION: xs only extend to 1E-5
+					if (curr->_energy < 1E-5)
+						curr->_energy = 1.1E-5;
+
 				}
 
 				/* Isotropic in CM */
