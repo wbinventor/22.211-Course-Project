@@ -31,20 +31,20 @@ private:
 	int _num_batches;
 	int _num_bins;
 	bool _statistics_compute;
-	float* _batch_mu;
-	float* _batch_variance;
-	float* _batch_std_dev;
-	float* _batch_rel_err;
+	double* _batch_mu;
+	double* _batch_variance;
+	double* _batch_std_dev;
+	double* _batch_rel_err;
 public:
 	BatchBinSet();
 	virtual ~BatchBinSet();
 
 	char* getBatchBinSetName();
 	Binner* getBinner(int batch);
-	float* getBatchMu();
-	float* getBatchVariance();
-	float* getBatchStdDev();
-	float* getBatchRelativeError();
+	double* getBatchMu();
+	double* getBatchVariance();
+	double* getBatchStdDev();
+	double* getBatchRelativeError();
 
 	void setBatchBinSetName(char* name);
 	void createBinners(float start, float end, int num_bins,

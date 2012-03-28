@@ -13,6 +13,7 @@
 #include <limits>
 #include <math.h>
 #include "log.h"
+#include "arraycreator.h"
 
 
 /* Bin spacing types */
@@ -54,8 +55,8 @@ private:
 	char* _name;
 	int _num_bins;
 	float* _edges;
-	float* _centers;
-	float* _tallies;
+	double* _centers;
+	double* _tallies;
 	int* _num_tallies;
 	float _bin_delta;
 	binType _bin_type;
@@ -67,17 +68,17 @@ public:
 	char* getBinnerName();
 	int getNumBins();
 	float* getBinEdges();
-	float* getBinCenters();
+	double* getBinCenters();
 	float getBinDelta();
 	float getBinDelta(float sample);
 	binType getBinType();
 	tallyType getTallyType();
-	float* getTallies();
-	float getTally(int bin_index);
+	double* getTallies();
+	double getTally(int bin_index);
 	int* getNumTallies();
 	int getNumTallies(int bin_index);
-	float getMaxTally();
-	float getMinTally();
+	double getMaxTally();
+	double getMinTally();
 	int getBinIndex(float sample);
 	char* getIsotopes();
 
@@ -95,9 +96,5 @@ public:
 	void normalizeTallies();
 	void normalizeTallies(float scale_factor);
 };
-
-/* A set of helper functions inspired by MATLAB */
-float* linspace(float start, float end, int num_values);
-float* logspace(float start, float end, int num_values);
 
 #endif /* BINNER_H_ */

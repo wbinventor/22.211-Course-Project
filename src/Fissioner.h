@@ -14,6 +14,7 @@
 #include "integrate.h"
 #include "interpolate.h"
 #include "gnuplot.h"
+#include "arraycreator.h"
 
 
 /* Fissioner - This class represents the physics of neutron emissions

@@ -147,8 +147,8 @@ float Isotope::getCaptureXS(float energy) const{
 		return 0.0;
 
 	/* Use linear interpolation to find the capture cross-section */
-	return linearInterp(_capture_xs_energies, _capture_xs,
-									_num_capture_xs, energy);
+	return linearInterp<float, float, float>(_capture_xs_energies,
+								_capture_xs, _num_capture_xs, energy);
 }
 
 
@@ -211,8 +211,8 @@ float Isotope::getScatterXS(float energy) const {
 		return getInelasticXS(energy);
 
 	/* Use linear interpolation to find the scattering cross-section */
-	return linearInterp(_scatter_xs_energies, _scatter_xs,
-									_num_scatter_xs, energy);
+	return linearInterp<float, float, float>(_scatter_xs_energies,
+								_scatter_xs, _num_scatter_xs, energy);
 }
 
 
@@ -323,8 +323,8 @@ float Isotope::getInelasticXS(float energy) const {
 		return 0.0;
 
 	/* Use linear interpolation to find the inelastic scatter cross-section */
-	return linearInterp(_inelastic_xs_energies, _inelastic_xs,
-									_num_inelastic_xs, energy);
+	return linearInterp<float, float, float>(_inelastic_xs_energies,
+								_inelastic_xs, _num_inelastic_xs, energy);
 }
 
 
@@ -389,8 +389,8 @@ float Isotope::getElasticXS(float energy) const {
 		return 0.0;
 
 	/* Use linear interpolation to find the elastic scatter cross-section */
-	return linearInterp(_elastic_xs_energies, _elastic_xs,
-									_num_elastic_xs, energy);
+	return linearInterp<float, float, float>(_elastic_xs_energies,
+								_elastic_xs, _num_elastic_xs, energy);
 }
 
 
@@ -455,8 +455,8 @@ float Isotope::getFissionXS(float energy) const{
 		return 0.0;
 
 	/* Use linear interpolation to find the fission cross-section */
-	return linearInterp(_fission_xs_energies, _fission_xs,
-									_num_fission_xs, energy);
+	return linearInterp<float, float, float>(_fission_xs_energies,
+							_fission_xs, _num_fission_xs, energy);
 }
 
 
@@ -536,8 +536,8 @@ float Isotope::getTotalXS(float energy) const {
 	/* If the total xs has been defined explicitly, use it to
 	 * linearly interpolate to find the total cross-section */
 	if (_num_total_xs != 0)
-		return linearInterp(_total_xs_energies, _total_xs,
-									_num_total_xs, energy);
+		return linearInterp<float, float, float>(_total_xs_energies,
+									_total_xs, _num_total_xs, energy);
 
 	/* Otherwise loop over all xs which have been defined and
 	 * add them to a total xs */
@@ -670,13 +670,13 @@ float Isotope::getInelasticScatterEnergy(float energy) {
 	/* If cdf was found, interpolate to find the outgoing energy */
 	/* First find the cdf prob value for the incoming energy and normalize our
 	 * random number test value by it */
-	float prob = linearInterp(cdf.first.first, cdf.first.second, cdf.second,
-																	energy);
+	float prob = linearInterp<float, float, float>(cdf.first.first,
+										cdf.first.second, cdf.second, energy);
 	float test = (float(rand()) / RAND_MAX) * prob;
 
 	/* Interpolate to find eprime based on our normalized random number */
-	float energy_prime = linearInterp(cdf.first.second, cdf.first.first,
-															cdf.second, test);
+	float energy_prime = linearInterp<float, float, float>(cdf.first.second,
+										cdf.first.first, cdf.second, test);
 
 	return energy_prime;
 }
@@ -1398,8 +1398,8 @@ void Isotope::initializeThermalScattering(float start_energy,
 	float* cdf = new float[_num_thermal_cdf_bins];
 
 	/* Initialize logarithmically spaced E/kT for each distribution */
-	_E_to_kT = logspace(start_energy/(_kB*_T), end_energy/(_kB*_T),
-												_num_thermal_cdfs);
+	_E_to_kT = logspace<float, float>(start_energy/(_kB*_T),
+									end_energy/(_kB*_T), _num_thermal_cdfs);
 
 	/* Find the maximum Eprime / E value that we must extend our distributions
 	 * to before they all fall below some tolerance */
@@ -1427,7 +1427,8 @@ void Isotope::initializeThermalScattering(float start_energy,
 	}
 
 	/* Initialize x-axis of Eprime to E ratios */
-	_Eprime_to_E = logspace(1E-5, curr_Eprime_to_E, _num_thermal_cdf_bins+1);
+	_Eprime_to_E = logspace<float, float>(1E-5, curr_Eprime_to_E,
+										_num_thermal_cdf_bins);
 
 	/* Loop over each distribution */
 	for (int i=0; i < _num_thermal_cdfs; i++) {
@@ -1468,19 +1469,19 @@ void Isotope::initializeThermalScattering(float start_energy,
  */
 float Isotope::thermalScatteringProb(float E_prime_to_E, int dist_index) {
 
-	float prob;
+	double prob;
 
     /* Computes the final energy for each of the ratios */
     float Eprime = _E_to_kT[dist_index] * E_prime_to_E;
 
     /* Uses the equation from 22.211 slide 26 of the 2nd lecture
      * to compute probabilities */
-    float a = sqrt(_E_to_kT[dist_index]);
-	float b = sqrt(Eprime);
-	float c = erf(_eta * b - _rho * a);
-	float d = erf(_eta * b + _rho * a);
-	float e = erf(_eta * a - _rho * b);
-	float f = erf(_eta * a + _rho * b);
+    double a = sqrt(_E_to_kT[dist_index]);
+	double b = sqrt(Eprime);
+	double c = erf(_eta * b - _rho * a);
+	double d = erf(_eta * b + _rho * a);
+	double e = erf(_eta * a - _rho * b);
+	double f = erf(_eta * a + _rho * b);
 	double g = exp(double(_E_to_kT[dist_index]) - double(Eprime));
 
 	/* Account for lower and upper signs in equation */
@@ -1490,12 +1491,12 @@ float Isotope::thermalScatteringProb(float E_prime_to_E, int dist_index) {
 		prob = (c + d) + g * (e - f);
 
 	/* Multiply by eta / 2 */
-	prob *= _eta*_eta / 2.0;
+	prob *= double(_eta*_eta) / 2.0;
 
 	/* Normalize to the atomic mass by multiplying by 1-alpha */
-	prob *= (1.0 - _alpha);
+	prob *= (1.0 - double(_alpha));
 
-	return prob;
+	return float(prob);
 }
 
 
@@ -1570,7 +1571,8 @@ void Isotope::plotXS(float start_energy, float end_energy, int num_energies,
 													collisionType types, ...) {
 
 	/* Create an array of logarithmically spaced energies */
-	float* energies = logspace(start_energy, end_energy, num_energies);
+	float* energies = logspace<float, float>(start_energy,
+											end_energy, num_energies);
 	float* xs_values = new float[num_energies];
 
 	/* Initialize variable parameters data structures of different isotopes */

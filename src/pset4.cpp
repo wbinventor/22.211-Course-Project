@@ -27,7 +27,6 @@
 
 //TODO: variance for k-inf
 //TODO: output k-inf as computed by two group xs
-//TODO: rescale material xs, speedup/reduce number of times computing total xs
 
 int main(int argc, const char **argv) {
 
@@ -261,21 +260,18 @@ int main(int argc, const char **argv) {
 	H1->loadXS((char*)"pendf/h-1_elastic.txt", ELASTIC, delim);
 	H1->setElasticAngleType(ISOTROPIC_LAB);
 	H1->initializeThermalScattering(1E-6, 15, 1000, 15);
-//	H1->plotXS(1E-5, 1E7, 10000, CAPTURE, ELASTIC, -1);
 
 	Isotope* O16 = new Isotope();
 	O16->setA(16);
 	O16->setIsotopeType((char*)"O16");
 	O16->loadXS((char*)"pendf/o-16_elastic.txt", ELASTIC, delim);
 	O16->setElasticAngleType(ISOTROPIC_LAB);
-//	O16->plotXS(1E-5, 1E7, 10000, ELASTIC, -1);
 
 	Isotope* ZR90 = new Isotope();
 	ZR90->setA(90);
 	ZR90->setIsotopeType((char*)"ZR90");
 	ZR90->loadXS((char*)"pendf/zr-90_elastic.txt", ELASTIC, delim);
 	ZR90->setElasticAngleType(ISOTROPIC_LAB);
-//	ZR90->plotXS(1E-5, 1E7, 10000, ELASTIC, -1);
 
 	Isotope* U235 = new Isotope();
 	U235->setA(235);
@@ -283,7 +279,6 @@ int main(int argc, const char **argv) {
 	U235->loadXS((char*)"pendf/u-235_capture.txt", CAPTURE, delim);
 	U235->setOneGroupElasticXS(11.4, ISOTROPIC_LAB);
 	U235->loadXS((char*)"pendf/u-235_fission.txt", FISSION, delim);
-//	U235->plotXS(1E-5, 1E7, 10000, CAPTURE, ELASTIC, FISSION, -1);
 
 	Isotope* U238 = new Isotope();
 	U238->setA(238);
@@ -291,7 +286,6 @@ int main(int argc, const char **argv) {
 	U238->loadXS((char*)"pendf/u-238_capture.txt", CAPTURE, delim);
 	U238->setOneGroupElasticXS(11.3, ISOTROPIC_LAB);
 	U238->loadXS((char*)"pendf/u-238_fission.txt", FISSION, delim);
-//	U238->plotXS(1E-5, 1E7, 10000, CAPTURE, ELASTIC, FISSION, -1);
 
 
 	/* Create Materials */
@@ -340,19 +334,11 @@ int main(int argc, const char **argv) {
 
 		/* Set the fissioner class for this thread to have 10MeV maximum and
 		 * 5000 sample bins */
-		fissioners[i].setEMax(10);
-		fissioners[i].setNumBins(5000);
+		fissioners[i].setEMax(10.0);
+		fissioners[i].setNumBins(200);
 		fissioners[i].buildCDF();
 	}
 
-
-//	moderator[0].getIsotope((char*)"H1")->plotXS(1E-7, 1E7, 10000, CAPTURE, ELASTIC);
-//	moderator[0].getIsotope((char*)"ZR90")->plotXS(1E-7, 1E7, 10000, ELASTIC);
-//	fuel[0].getIsotope((char*)"U235")->plotXS(1E-7, 1E7, 10000, CAPTURE, ELASTIC, FISSION);
-//	fuel[0].getIsotope((char*)"U238")->plotXS(1E-7, 1E7, 10000, CAPTURE, ELASTIC, FISSION);
-//
-//	moderator[0].plotMacroscopicCrossSections(1E-7, 1E7, 1000, "H1", "O16", "ZR90", NULL);
-//	fuel[0].plotMacroscopicCrossSections(1E-7, 1E7, 1000, "U235", "U238", "O16", NULL);
 
 	/* Run the simulation */
 	log_printf(NORMAL, "*******************************************************"
@@ -420,7 +406,7 @@ int main(int argc, const char **argv) {
 			for (int n=0; n < num_neutrons; n++) {
 				neutron* new_neutron = initializeNewNeutron();
 				new_neutron->_x = 0.0;
-				new_neutron->_mu = (float(rand()) / RAND_MAX) * 2 - 1;
+				new_neutron->_mu = (float(rand()) / RAND_MAX) * 2.0 - 1.0;
 				new_neutron->_energy = fissioners[thread_num].emitNeutroneV();
 				pellet[thread_num].addNeutron(new_neutron);
 			}
@@ -489,8 +475,18 @@ int main(int argc, const char **argv) {
 	diffusion_rate_2G->computeScaledBatchStatistics(num_neutrons*v_total);
 
 	/* Compute k-infinity */
-	float k_inf = tot_fiss_rate->getBatchMu()[0] * nu_bar /
-											tot_abs_rate->getBatchMu()[0];
+	float fiss_rate_mu = tot_fiss_rate->getBatchMu()[0];
+	float fiss_rate_var = tot_fiss_rate->getBatchVariance()[0];
+	float abs_rate_mu = tot_abs_rate->getBatchMu()[0];
+	float abs_rate_var = tot_abs_rate->getBatchVariance()[0];
+
+	float k_inf = fiss_rate_mu * nu_bar / abs_rate_mu;
+
+	float k_inf_var = (fiss_rate_mu*fiss_rate_mu)*abs_rate_var +
+						(abs_rate_mu*abs_rate_mu)*fiss_rate_var +
+									fiss_rate_var*abs_rate_var;
+
+	float k_inf_std_dev = sqrt(k_inf_var);
 
 	/* Compute moderator to fuel flux ratios */
 	fuel_flux_ratio->computeScaledBatchStatistics(num_neutrons*v_fuel);
@@ -505,13 +501,14 @@ int main(int argc, const char **argv) {
 	log_printf(RESULT, "*******************************************************"
 													"*************************");
 	log_printf(NORMAL, "");
-	log_printf(RESULT, "Tot fission rate = %f\t\tVariance = %f",
+	log_printf(RESULT, "Tot fission rate = %1.8f\t\tVariance = %1.8f",
 									tot_fiss_rate->getBatchMu()[0],
 									tot_fiss_rate->getBatchVariance()[0]);
 	log_printf(RESULT, "Tot absorption rate = %f\t\tVariance = %f",
 									tot_abs_rate->getBatchMu()[0],
 									tot_abs_rate->getBatchVariance()[0]);
-	log_printf(RESULT, "k_inf = %f", k_inf);
+	log_printf(RESULT, "k_inf = %f\t\tvariance = %1.8f \t\t 2 sigma = %1.8f", k_inf,
+													k_inf_var, k_inf_std_dev);
 	log_printf(RESULT, "");
 
 	/* Print to the console the moderator/fuel flux ratios */
@@ -542,9 +539,9 @@ int main(int argc, const char **argv) {
 	log_printf(RESULT, "*******************************************************"
 													"*************************");
 	log_printf(RESULT, "");
-	float* two_group_flux_mu = two_group_flux->getBatchMu();
-	float flux1 = two_group_flux_mu[0];
-	float flux2 = two_group_flux_mu[1];
+	double* two_group_flux_mu = two_group_flux->getBatchMu();
+	double flux1 = two_group_flux_mu[0];
+	double flux2 = two_group_flux_mu[1];
 	log_printf(RESULT, "Ratio = %f", flux2 / flux1);
 	log_printf(RESULT, "");
 
@@ -703,6 +700,7 @@ int main(int argc, const char **argv) {
 	delete two_group_flux;
 	delete coll_rate_2G;
 	delete transport_rate_2G;
+	delete diffusion_rate_2G;
 
 	delete H1;
 	delete O16;

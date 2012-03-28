@@ -16,6 +16,7 @@
 #include "interpolate.h"
 #include "integrate.h"
 #include "gnuplot.h"
+#include "arraycreator.h"
 #include "xsreader.h"
 #include "Binner.h"
 

@@ -60,7 +60,7 @@ int Binner::getNumBins() {
 
 
 /**
- * Returns a float array of bin edge values
+ * Returns a double array of bin edge values
  * @return array of bin edge values
  */
 float* Binner::getBinEdges() {
@@ -73,10 +73,10 @@ float* Binner::getBinEdges() {
 
 
 /**
- * Returns a float array of bin center values
+ * Returns a double array of bin center values
  * @return array of bin center values
  */
-float* Binner::getBinCenters() {
+double* Binner::getBinCenters() {
 	 if (_num_bins == 0)
 		 log_printf(ERROR, "Cannot return bin centers for Binner %s since the "
 				 "bins have not yet been created", _name);
@@ -130,10 +130,10 @@ tallyType Binner::getTallyType() {
 
 
 /**
- * Returns a float array of the tallies within each bin
+ * Returns a double array of the tallies within each bin
  * @return an array of
  */
-float* Binner::getTallies() {
+double* Binner::getTallies() {
 	 if (_num_bins == 0)
 		 log_printf(ERROR, "Cannot return tallies for Binner %s since the "
 				 "bins for have not yet been created", _name);
@@ -147,7 +147,7 @@ float* Binner::getTallies() {
  * @param bin_index the index for the bin of interest
  * @return the tally within that bin
  */
-float Binner::getTally(int bin_index) {
+double Binner::getTally(int bin_index) {
 
 	if (bin_index < 0 || bin_index >= _num_bins)
 		log_printf(ERROR, "Tried to get a tally for a bin index for Binner %s"
@@ -190,13 +190,13 @@ int Binner::getNumTallies(int bin_index) {
  * Returns the maximum tally value over all bins
  * @return the maximum tally value
  */
-float Binner::getMaxTally() {
+double Binner::getMaxTally() {
 
 	if (_num_bins == 0)
 		 log_printf(ERROR, "Cannot return the maximum tally for Binner %s"
 				 "since the bins have not yet been created", _name);
 
-	float max_tally = 0;
+	double max_tally = 0;
 
 	/* Loop over all bins */
 	for (int i=0; i < _num_bins; i++) {
@@ -212,12 +212,12 @@ float Binner::getMaxTally() {
  * Returns the maximum tally value over all bins
  * @return the maximum tally value
  */
-float Binner::getMinTally() {
+double Binner::getMinTally() {
 	if (_num_bins == 0)
 		 log_printf(ERROR, "Cannot return the minimum tally for Binner %s"
 				 " since the bins have not yet been created", _name);
 
-	float min_tally = std::numeric_limits<float>::infinity();
+	double min_tally = std::numeric_limits<double>::infinity();
 
 	/* Loop over all bins */
 	for (int i=0; i < _num_bins; i++) {
@@ -306,7 +306,7 @@ void Binner::setTallyType(tallyType type) {
 
 
 /**
- * Set a user-defined float array of bin edge values
+ * Set a user-defined double array of bin edge values
  * @param edges the array of bin edges
  * @param num_bins the number of bins
  */
@@ -317,12 +317,13 @@ void Binner::setBinEdges(float* edges, int num_bins) {
 	_bin_type = OTHER;
 
 	/* Set all tallies to zero by default */
-	_tallies = new float[_num_bins];
-	_num_tallies = new int[_num_bins];
+	_tallies = new double[num_bins];
+	_num_tallies = new int[num_bins];
+
 
 	/* Loop over tallies and set to zero */
 	for (int i=0; i < _num_bins; i++) {
-		_tallies[i] = 0;
+		_tallies[i] = 0.0;
 		_num_tallies[i] = 0;
 	}
 
@@ -359,7 +360,7 @@ void Binner::generateBinEdges(float start, float end, int num_bins,
 	_bin_type = type;
 
 	/* Allocate memory for tallies */
-	_tallies = new float[num_bins];
+	_tallies = new double[num_bins];
 	_num_tallies = new int[num_bins];
 
 	/* Set all tallies to zero by default */
@@ -373,7 +374,7 @@ void Binner::generateBinEdges(float start, float end, int num_bins,
 		_bin_delta = float(end - start) / float(_num_bins);
 
 		/* Generate points from start to end for each bin edge */
-		_edges = linspace(start, end, num_bins+1);
+		_edges = linspace<float, float>(start, end, num_bins+1);
 	}
 
 	/* Logarithmically equal spacing between bins */
@@ -381,7 +382,7 @@ void Binner::generateBinEdges(float start, float end, int num_bins,
 		_bin_delta = float(log10(end) - log10(start)) / float(_num_bins);
 
 		/* Generate points from start to end for each bin edge */
-		_edges = logspace(start, end, num_bins+1);
+		_edges = logspace<float, float>(start, end, num_bins+1);
 	}
 
 	else
@@ -405,7 +406,7 @@ void Binner::generateBinCenters() {
 				 "the bins have not yet been created", _name);
 
 	/* Allocate memory for the bin centers array */
-	_centers = new float[_num_bins];
+	_centers = new double[_num_bins];
 
 	/* Loop over all bins and find the midpoint between edges */
 	for (int i=0; i < _num_bins; i++)
@@ -416,7 +417,7 @@ void Binner::generateBinCenters() {
 
 
 /**
- * Tallies unity for each sample in a float array of samples
+ * Tallies unity for each sample in a double array of samples
  * @param samples array of samples to tally
  * @param num_samples the number of samples to tally
  */
@@ -463,7 +464,7 @@ void Binner::tally(float sample) {
 
 
 /**
- * Tallies a weight for each sample in a float array of samples
+ * Tallies a weight for each sample in a double array of samples
  * @param samples array of samples to tally
  * @param sample_weights array of sample weights to increment tallies by
  * @param num_samples the number of samples to tally
@@ -503,7 +504,7 @@ void Binner::weightedTally(float sample, float weight) {
 	int bin_index = getBinIndex(sample);
 
 	if (bin_index >= 0 && bin_index < _num_bins) {
-		_tallies[bin_index] += weight;
+		_tallies[bin_index] += double(weight);
 		_num_tallies[bin_index]++;
 	}
 
@@ -520,7 +521,7 @@ void Binner::normalizeTallies() {
 		log_printf(ERROR, "Cannot normalize tallies for Binner %s since it is"
 						"the bins have not yet been created", _name);
 
-	float max_tally = getMaxTally();
+	double max_tally = getMaxTally();
 
 	/* Divide each tally by maximum tally value */
 	for (int n=0; n < _num_bins; n++)
@@ -542,52 +543,7 @@ void Binner::normalizeTallies(float scale_factor) {
 
 	/* Divide each tally by maximum tally value */
 	for (int n=0; n < _num_bins; n++)
-		_tallies[n] /= scale_factor;
+		_tallies[n] /= double(scale_factor);
 
 	return;
-}
-
-
-/**
- * Helper function to generate an array of equally spaced floats between
- * a given start and end point. Modeled after MATLAB's linspace function
- * @param start the starting point
- * @param end the ending point
- * @param num_values the number of values to create
- * @return a pointer to the array of points
- */
-float* linspace(float start, float end, int num_values) {
-
-	float* values = new float[num_values];
-
-	/* Spacing between values */
-	float delta = float(end - start) / float(num_values-1);
-
-	/* Loop over all values */
-	for (int i=0; i <= num_values; i++)
-		values[i] = delta * i + start;
-
-	return values;
-}
-
-
-/**
- * Helper function to generate an array of equal logarithmically spaced
- * floats between a given start and end point. Modeled after MATLAB's
- * linspace function
- * @param start the starting point
- * @param end the ending point
- * @param num_values the number of values to create
- * @return a pointer to the array of points
- */
-float* logspace(float start, float end, int num_values) {
-
-	/* Create an equally spaced array of base 10 exponent values */
-	float* values = linspace((float)log10(start), log10(end), num_values);
-
-	/* Loop over all values and project back original space */
-	for (int i=0; i < num_values; i++)
-		values[i] = pow(10, values[i]);
-
-	return values;
 }

@@ -69,9 +69,9 @@ Binner* BatchBinSet::getBinner(int batch) {
 /**
  * Returns a pointer to an array of batch averages if they have been
  * computed
- * @return a float array of batch averages for each bin
+ * @return a double array of batch averages for each bin
  */
-float* BatchBinSet::getBatchMu() {
+double* BatchBinSet::getBatchMu() {
 
 	if (!_statistics_compute)
 		log_printf(ERROR, "Statistics have not yet been computed for "
@@ -84,9 +84,9 @@ float* BatchBinSet::getBatchMu() {
 /**
  * Returns a pointer to an array of batch variances if they have been
  * computed
- * @return a float array of batch variances for each bin
+ * @return a double array of batch variances for each bin
  */
-float* BatchBinSet::getBatchVariance() {
+double* BatchBinSet::getBatchVariance() {
 
 	if (!_statistics_compute)
 		log_printf(ERROR, "Statistics have not yet been computed for "
@@ -99,9 +99,9 @@ float* BatchBinSet::getBatchVariance() {
 /**
  * Returns a pointer to an array of batch standard deviations if they have
  * been computed
- * @return a float array of batch standard deviations for each bin
+ * @return a double array of batch standard deviations for each bin
  */
-float* BatchBinSet::getBatchStdDev() {
+double* BatchBinSet::getBatchStdDev() {
 
 	if (!_statistics_compute)
 		log_printf(ERROR, "Statistics have not yet been computed for "
@@ -114,9 +114,9 @@ float* BatchBinSet::getBatchStdDev() {
 /**
  * Returns a pointer to an array of batch relative errors if they have been
  * computed
- * @return a float array of batch relative errors for each bin
+ * @return a double array of batch relative errors for each bin
  */
-float* BatchBinSet::getBatchRelativeError() {
+double* BatchBinSet::getBatchRelativeError() {
 
 	if (!_statistics_compute)
 		log_printf(ERROR, "Statistics have not yet been computed for "
@@ -163,10 +163,10 @@ void BatchBinSet::createBinners(float start, float end, int num_bins,
 
 	/* Allocate memory for binners and batch statistics arrays */
 	_binners = new Binner[_num_batches];
-	_batch_mu = new float[_num_bins];
-	_batch_variance = new float[_num_bins];
-	_batch_std_dev = new float[_num_bins];
-	_batch_rel_err = new float[_num_bins];
+	_batch_mu = new double[_num_bins];
+	_batch_variance = new double[_num_bins];
+	_batch_std_dev = new double[_num_bins];
+	_batch_rel_err = new double[_num_bins];
 
 	/* Create a Binner for each batch */
 	for (int b=0; b < num_batches; b++) {
@@ -198,10 +198,10 @@ void BatchBinSet::createBinners(float* bin_edges, int num_bins,
 
 	/* Allocate memory for binners and batch statistics arrays */
 	_binners = new Binner[_num_batches];
-	_batch_mu = new float[_num_bins];
-	_batch_variance = new float[_num_bins];
-	_batch_std_dev = new float[_num_bins];
-	_batch_rel_err = new float[_num_bins];
+	_batch_mu = new double[_num_bins];
+	_batch_variance = new double[_num_bins];
+	_batch_std_dev = new double[_num_bins];
+	_batch_rel_err = new double[_num_bins];
 
 	/* Create a Binner for each batch */
 	for (int b=0; b < num_batches; b++) {
@@ -238,14 +238,14 @@ void BatchBinSet::computeBatchStatistics() {
 			_batch_mu[i] += _binners[j].getTally(i);
 
 		/* Compute average flux for this bin */
-		_batch_mu[i] /= float(_num_batches);
+		_batch_mu[i] /= double(_num_batches);
 
 		/* Compute the variance for this bin */
 		for (int j=0; j < _num_batches; j++) {
 			_batch_variance[i] += (_binners[j].getTally(i) - _batch_mu[i])
 					* (_binners[j].getTally(i) - _batch_mu[i]);
 		}
-		_batch_variance[i] /= float(_num_batches);
+		_batch_variance[i] /= double(_num_batches);
 
 		/* Compute the standard deviation for this bin */
 		_batch_std_dev[i] = sqrt(_batch_variance[i]);
@@ -283,10 +283,10 @@ void BatchBinSet::computeScaledBatchStatistics(float scale_factor) {
 
 		/* Accumulate flux from each batch */
 		for (int j=0; j < _num_batches; j++)
-			_batch_mu[i] += _binners[j].getTally(i) / scale_factor;
+			_batch_mu[i] += _binners[j].getTally(i) / double(scale_factor);
 
 		/* Compute average flux for this bin */
-		_batch_mu[i] /= float(_num_batches);
+		_batch_mu[i] /= double(_num_batches);
 
 		/* Compute the variance for this bin */
 		for (int j=0; j < _num_batches; j++) {
@@ -294,7 +294,7 @@ void BatchBinSet::computeScaledBatchStatistics(float scale_factor) {
 			- _batch_mu[i]) * (_binners[j].getTally(i) / scale_factor
 												- _batch_mu[i]);
 		}
-		_batch_variance[i] /= float(_num_batches);
+		_batch_variance[i] /= double(_num_batches);
 
 		/* Compute the standard deviation for this bin */
 		_batch_std_dev[i] = sqrt(_batch_variance[i]);

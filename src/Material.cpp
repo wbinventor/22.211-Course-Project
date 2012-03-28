@@ -783,13 +783,13 @@ void Material::rescaleCrossSections(float start_energy, float end_energy,
 	float* grid;
 
 	if (scale_type == EQUAL) {
-		grid = linspace(start_energy, end_energy, num_energies);
+		grid = linspace<float, float>(start_energy, end_energy, num_energies);
 		_start_energy = start_energy;
 		_end_energy = end_energy;
 		_delta_energy = (_end_energy - _start_energy) / num_energies;
 	}
 	else {
-		grid = logspace(start_energy, end_energy, num_energies);
+		grid = logspace<float, float>(start_energy, end_energy, num_energies);
 		_start_energy = log10(start_energy);
 		_end_energy = log10(end_energy);
 		_delta_energy = (_end_energy - _start_energy) / num_energies;
@@ -867,7 +867,8 @@ void Material::plotMacroscopicCrossSections(float start_energy,
 		float end_energy, int num_energies, char* isotopes, ...) {
 
 	/* Allocate memory for energies and xs values */
-	float* energies = logspace(start_energy, end_energy, num_energies);
+	float* energies = logspace<float, float>(start_energy, end_energy,
+														num_energies);
 	float* xs_values = new float[num_energies];
 
 	/* Initialize variable parameters data structures of different isotopes */
@@ -934,7 +935,8 @@ void Material::plotMicroscopicCrossSections(float start_energy,
 		float end_energy, int num_energies, char* isotopes, ...) {
 
 	/* Allocate memory for energies and xs values */
-	float* energies = logspace(start_energy, end_energy, num_energies);
+	float* energies = logspace<float, float>(start_energy, end_energy,
+														num_energies);
 	float* xs_values = new float[num_energies];
 
 	/* Initialize variable parameters data structures of different isotopes */

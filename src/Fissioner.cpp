@@ -52,24 +52,25 @@ void Fissioner::setEMax(float E_max) {
 void Fissioner::buildCDF() {
 
 	/* Allocate memory to a linearly spaced array of energy values */
-	_cdf_energies = linspace(0, _E_max, _num_bins);
+	_cdf_energies = linspace<float, float>(0.0, _E_max, _num_bins);
 
 	/* Temporary array to hold the Watt spectrum values at each energy */
-	float* chi = new float[_num_bins+1];
+	float* chi = new float[_num_bins];
 
 	/* Loop over all CDF bins and evaluate the Watt spectrum */
-	for (int i=0; i < _num_bins+1; i++)
+	for (int i=0; i < _num_bins; i++)
 		chi[i] = wattSpectrum(_cdf_energies[i]);
 
 	_cdf = new float[_num_bins];
 
 	/* Initialize CDF by numerical integration of Watt spectrum */
-	cumulativeIntegral(_cdf_energies, chi, _cdf, _num_bins+1, TRAPEZOIDAL);
+	cumulativeIntegral(_cdf_energies, chi, _cdf, _num_bins, TRAPEZOIDAL);
 
 	/* Ensure that CDF is fully normalized */
-	for (int i=0; i < _num_bins+1; i++)
-		_cdf[i] /= _cdf[_num_bins];
-	_cdf[_num_bins] = 1.0;
+	for (int i=0; i < _num_bins; i++)
+		_cdf[i] /= float(_cdf[_num_bins-1]);
+
+	_cdf[_num_bins-1] = 1.0;
 
 	/* Delete spectrum values */
 	delete [] chi;
@@ -93,11 +94,11 @@ float Fissioner::wattSpectrum(float energy) {
 float Fissioner::emitNeutronMeV() {
 
 	if (_num_bins == 0)
-		log_printf(ERROR, "Unabel to sample Fissioner CDF since it "
+		log_printf(ERROR, "Unable to sample Fissioner CDF since it "
 				"has not yet been created");
 
-	return linearInterp(_cdf, _cdf_energies,_num_bins+1,
-										float(rand()) / RAND_MAX);
+	return linearInterp<float, float, float>(_cdf, _cdf_energies,_num_bins,
+													float(rand()) / RAND_MAX);
 }
 
 
@@ -116,7 +117,7 @@ float Fissioner::emitNeutroneV() {
 void Fissioner::plotCDF() {
 
 	if (_num_bins == 0)
-		log_printf(ERROR, "Unabel to plot the Fissioner CDF since it "
+		log_printf(ERROR, "Unable to plot the Fissioner CDF since it "
 				"has not yet been created");
 
 	/* Plot the CDF */
@@ -126,9 +127,8 @@ void Fissioner::plotCDF() {
 	gnuplot_cmd(handle, (char*)"set title \"Fissioner CDF\"");
 	gnuplot_setstyle(handle, (char*)"lines");
 	gnuplot_saveplot(handle, (char*)"Fission_CDF");
-	gnuplot_plot_xy(handle, _cdf_energies, _cdf, _num_bins+1, (char*)"CDF");
+	gnuplot_plot_xy(handle, _cdf_energies, _cdf, _num_bins, (char*)"CDF");
 	gnuplot_close(handle);
-
 }
 
 
@@ -140,7 +140,7 @@ void Fissioner::plotCDF() {
 void Fissioner::plotWattSpectrum(int num_values) {
 
 	/* Create a linearly spaced array of energy values */
-	float* energies = linspace(0.0, _E_max, num_values);
+	float* energies = linspace<float, float>(0.0, _E_max, num_values);
 
 	/* Allocate memory for chi spectral values */
 	float* spectrum = new float[num_values];

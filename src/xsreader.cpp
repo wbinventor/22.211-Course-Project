@@ -25,6 +25,8 @@
 int parseCrossSections(const char* file, float* energies, float* xs_values,
 								int num_xs_values, const char* delimiter) {
 
+//	printf("Inside parse crossections. num_xs_values =");
+
 	/* Instantiate I/O variables */
 	std::ifstream input_file(file, std::ios::in);
 	std::string buff;

@@ -66,12 +66,7 @@ private:
 	/* Binners for tallying */
 	std::vector<Binner*> _bin_sets;
 
-	// ???? //
 	Material* _material;
-
-	/* Map of number density and material pointers */
-//	std::map<char*, std::pair<float, Isotope*> > _isotopes;
-//	float _tot_num_density;
 	float _volume;
 
 	/* Two region pin cell parameters */
@@ -117,8 +112,6 @@ public:
     void useForcedCollision(float weight_low, float weight_avg);
 
     bool playRussianRoulette(neutron* neutron);
-//    float computeFuelFuelCollisionProb(float energy);
-//    float computeModeratorFuelCollisionProb(float energy);
     float computeFuelFuelCollisionProb(int energy_index);
     float computeModeratorFuelCollisionProb(int energy_index);
     void clearBinners();

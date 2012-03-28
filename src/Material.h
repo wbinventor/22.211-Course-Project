@@ -12,6 +12,7 @@
 
 #include "log.h"
 #include "gnuplot.h"
+#include "arraycreator.h"
 #include "Isotope.h"
 #include "Binner.h"
 
